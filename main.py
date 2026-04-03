@@ -1,7 +1,3 @@
-"""
-Точка входа — запускает userbot и управляющий бот параллельно.
-"""
-
 import asyncio
 import logging
 import logging.handlers
