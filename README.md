@@ -1,4 +1,4 @@
-<![CDATA[<div align="center">
+<div align=center>
 
 ```
 ╔════════════════════════════════════════╗
@@ -7,6 +7,10 @@
 ╚════════════════════════════════════════╝
 ```
 
+</div>
+
+<div>
+  
 [![Python](https://img.shields.io/badge/Python-3.11+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Telethon](https://img.shields.io/badge/Telethon-1.24+-2CA5E0?style=flat-square&logo=telegram&logoColor=white)](https://github.com/LonamiWebs/Telethon)
 [![aiogram](https://img.shields.io/badge/aiogram-3.x-009CDE?style=flat-square&logo=telegram&logoColor=white)](https://aiogram.dev)
@@ -66,7 +70,7 @@ Controlled through a separate admin bot. No servers required — runs on your ma
 ### 1. Clone the repo
 
 ```bash
-git clone https://github.com/yourname/tg-ai-bot.git
+git clone https://github.com/t3rmynal/tg-ai-bot.git
 cd tg-ai-bot
 ```
 
@@ -184,7 +188,7 @@ tg-ai-bot/
 
 ## 🔧 Running as a systemd service
 
-```ini
+```
 # /etc/systemd/system/tg-ai-bot.service
 [Unit]
 Description=TG AI Userbot
@@ -202,7 +206,7 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-```bash
+```
 sudo systemctl enable tg-ai-bot
 sudo systemctl start tg-ai-bot
 sudo journalctl -u tg-ai-bot -f
@@ -213,4 +217,3 @@ sudo journalctl -u tg-ai-bot -f
 ## 📄 License
 
 MIT — do whatever you want.
-]]>
