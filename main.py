@@ -9,9 +9,6 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-
-# ── Logging ───────────────────────────────────────────────────────────────────
-
 def setup_logging() -> None:
     fmt = logging.Formatter(
         fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -21,12 +18,10 @@ def setup_logging() -> None:
     root = logging.getLogger()
     root.setLevel(logging.INFO)
 
-    # Консоль
     console = logging.StreamHandler(sys.stdout)
     console.setFormatter(fmt)
     root.addHandler(console)
 
-    # Ротируемый файл: 5 МБ × 3 файла
     file_handler = logging.handlers.RotatingFileHandler(
         "bot.log",
         maxBytes=5 * 1024 * 1024,
@@ -36,13 +31,9 @@ def setup_logging() -> None:
     file_handler.setFormatter(fmt)
     root.addHandler(file_handler)
 
-    # Шум от внешних библиотек
     logging.getLogger("telethon").setLevel(logging.WARNING)
     logging.getLogger("aiogram").setLevel(logging.WARNING)
     logging.getLogger("aiohttp").setLevel(logging.WARNING)
-
-
-# ── Валидация окружения ───────────────────────────────────────────────────────
 
 REQUIRED_ENV = ["TG_API_ID", "TG_API_HASH", "TG_PHONE", "CONTROL_BOT_TOKEN", "ADMIN_ID", "KILOCODE_API_KEY"]
 
@@ -53,9 +44,6 @@ def validate_env() -> None:
         print(f"[ERROR] Отсутствуют переменные окружения: {', '.join(missing)}")
         print("Скопируй .envexample в .env и заполни значения.")
         sys.exit(1)
-
-
-# ── Main ──────────────────────────────────────────────────────────────────────
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +111,6 @@ async def main() -> None:
 
     done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 
-    # Отменяем оставшиеся задачи
     for task in pending:
         task.cancel()
         try:
@@ -131,7 +118,6 @@ async def main() -> None:
         except (asyncio.CancelledError, Exception):
             pass
 
-    # Проверяем что упало
     for task in done:
         if task.get_name() == "shutdown_watcher":
             continue
@@ -147,7 +133,6 @@ if __name__ == "__main__":
     setup_logging()
     validate_env()
 
-    # Регистрируем обработчики сигналов
     signal.signal(signal.SIGTERM, _handle_signal)
     signal.signal(signal.SIGINT, _handle_signal)
 
