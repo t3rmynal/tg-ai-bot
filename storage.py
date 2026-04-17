@@ -1,7 +1,3 @@
-"""
-Хранение настроек — thread-safe через asyncio.Lock, атомарная запись.
-"""
-
 import asyncio
 import json
 import os
@@ -69,14 +65,12 @@ def get(key: str):
 
 
 async def set_async(key: str, value) -> None:
-    """Потокобезопасное обновление настройки."""
     async with _lock:
         settings[key] = value
         _save_to_disk(settings)
 
 
 def set_val(key: str, value) -> None:
-    """Синхронная версия — только для инициализации или однопоточного кода."""
     settings[key] = value
     _save_to_disk(settings)
 
