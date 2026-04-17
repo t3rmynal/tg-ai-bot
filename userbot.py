@@ -1,7 +1,3 @@
-"""
-Userbot — сидит на твоём аккаунте и отвечает на сообщения.
-"""
-
 import asyncio
 import logging
 import os
@@ -30,19 +26,16 @@ import storage
 
 client = TelegramClient("userbot", API_ID, API_HASH)
 
-# OrderedDict как ordered set: ключ = message_id, значение = True
-# Позволяет удалять именно старые записи (FIFO), а не случайные
 MAX_SENT_CACHE = 500
 bot_sent_messages: OrderedDict[int, bool] = OrderedDict()
 
-# Rate limit: chat_id → timestamp последнего ответа
 _last_response_time: dict[int, float] = {}
 
 
 def _track_sent(msg_id: int) -> None:
     bot_sent_messages[msg_id] = True
     while len(bot_sent_messages) > MAX_SENT_CACHE:
-        bot_sent_messages.popitem(last=False)  # удаляем самый старый
+        bot_sent_messages.popitem(last=False)  
 
 
 def is_reply_to_bot(message) -> bool:
@@ -70,8 +63,7 @@ async def get_my_username() -> tuple[str, int]:
 async def is_mentioned(message, my_username: str, my_id: int) -> bool:
     if not message.text:
         return False
-
-    # Быстрая проверка по тексту
+        
     if my_username and f"@{my_username}" in message.text.lower():
         return True
 
