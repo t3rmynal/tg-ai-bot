@@ -1,7 +1,3 @@
-"""
-Управляющий бот — через него настраиваешь userbot.
-"""
-
 import asyncio
 import logging
 import os
@@ -41,9 +37,6 @@ AVAILABLE_MODELS = [
     "qwen/qwen3-235b-a22b:free",
 ]
 
-
-# ── Утилиты ──────────────────────────────────────────────────────────────────
-
 def admin_only(func):
     async def wrapper(message: types.Message, *args, **kwargs):
         if message.from_user.id != ADMIN_ID:
@@ -65,9 +58,6 @@ def get_uptime() -> str:
     h, rem = divmod(seconds, 3600)
     m, s = divmod(rem, 60)
     return f"{h}ч {m}м {s}с"
-
-
-# ── Клавиатуры ────────────────────────────────────────────────────────────────
 
 def get_main_keyboard():
     return ReplyKeyboardMarkup(
@@ -146,9 +136,6 @@ def _build_settings_keyboard() -> InlineKeyboardMarkup:
         [InlineKeyboardButton(text="🤖 Сменить модель", callback_data="change_model")],
     ])
 
-
-# ── Команды ───────────────────────────────────────────────────────────────────
-
 @dp.message(Command("start"))
 @admin_only
 async def cmd_start(message: types.Message):
@@ -189,9 +176,6 @@ async def show_stats(message: types.Message):
     )
     await message.answer(text, parse_mode="Markdown")
 
-
-# ── Toggles ───────────────────────────────────────────────────────────────────
-
 @dp.callback_query(F.data.startswith("toggle_"))
 async def toggle_setting(callback: types.CallbackQuery):
     if callback.from_user.id != ADMIN_ID:
@@ -218,8 +202,6 @@ async def toggle_setting(callback: types.CallbackQuery):
     except Exception:
         pass
 
-
-# ── Смена модели ──────────────────────────────────────────────────────────────
 
 @dp.callback_query(F.data == "change_model")
 async def change_model_menu(callback: types.CallbackQuery):
@@ -255,9 +237,6 @@ async def set_model(callback: types.CallbackQuery):
     await callback.answer(f"модель: {model}")
     await callback.message.answer(f"✅ модель изменена на `{model}`", parse_mode="Markdown")
 
-
-# ── Ожидание ввода ────────────────────────────────────────────────────────────
-
 waiting_for: dict[int, str] = {}
 waiting_for_lock = asyncio.Lock()
 _expire_tasks: dict[int, asyncio.Task] = {}
@@ -274,7 +253,6 @@ async def _expire_waiting(user_id: int, delay: float = 60.0) -> None:
 
 def _set_waiting(user_id: int, action: str) -> None:
     waiting_for[user_id] = action
-    # Отменяем старый таймер если есть, запускаем новый
     if user_id in _expire_tasks:
         _expire_tasks[user_id].cancel()
     _expire_tasks[user_id] = asyncio.create_task(_expire_waiting(user_id))
@@ -330,10 +308,7 @@ async def change_temperature_prompt(callback: types.CallbackQuery):
     await callback.message.answer(
         f"текущая температура: {storage.get('ai_temperature')}\n\nнапиши новое значение (0.0–2.0):"
     )
-
-
-# ── Чаты ──────────────────────────────────────────────────────────────────────
-
+    
 @dp.message(F.text == "💬 Чаты")
 @admin_only
 async def manage_chats(message: types.Message):
@@ -448,10 +423,7 @@ async def del_black(message: types.Message):
 async def clear_white(message: types.Message):
     await storage.set_async("active_chats", [])
     await message.answer("белый список очищен, теперь отвечаю везде")
-
-
-# ── История ───────────────────────────────────────────────────────────────────
-
+    
 @dp.message(F.text == "🗑️ Очистить историю")
 @admin_only
 async def clear_all_history(message: types.Message):
@@ -480,9 +452,6 @@ async def clear_chat_history(message: types.Message):
 async def restart_ai(message: types.Message):
     chat_histories.clear()
     await message.answer("ai перезапущен, вся история очищена")
-
-
-# ── Обработка свободного ввода ────────────────────────────────────────────────
 
 @dp.message()
 @admin_only
