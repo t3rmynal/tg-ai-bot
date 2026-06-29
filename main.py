@@ -1,141 +1,67 @@
+"""Entry point.
+
+One asyncio loop runs both the Telethon client and the console menu, so the bot
+keeps answering while you're in the menus. Logs go to bot.log only - stdout
+belongs to the console UI.
+"""
+
 import asyncio
 import logging
 import logging.handlers
-import os
-import signal
-import sys
 
-from dotenv import load_dotenv
+import ai_service
+import config
+import console
+import providers
+from userbot import create_client
 
-load_dotenv()
 
 def setup_logging() -> None:
-    fmt = logging.Formatter(
-        fmt="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-    )
-
     root = logging.getLogger()
     root.setLevel(logging.INFO)
-
-    console = logging.StreamHandler(sys.stdout)
-    console.setFormatter(fmt)
-    root.addHandler(console)
-
-    file_handler = logging.handlers.RotatingFileHandler(
-        "bot.log",
-        maxBytes=5 * 1024 * 1024,
-        backupCount=3,
-        encoding="utf-8",
+    fmt = logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s", "%Y-%m-%d %H:%M:%S")
+    fh = logging.handlers.RotatingFileHandler(
+        "bot.log", maxBytes=5 * 1024 * 1024, backupCount=3, encoding="utf-8",
     )
-    file_handler.setFormatter(fmt)
-    root.addHandler(file_handler)
-
-    logging.getLogger("telethon").setLevel(logging.WARNING)
-    logging.getLogger("aiogram").setLevel(logging.WARNING)
-    logging.getLogger("aiohttp").setLevel(logging.WARNING)
-
-REQUIRED_ENV = ["TG_API_ID", "TG_API_HASH", "TG_PHONE", "CONTROL_BOT_TOKEN", "ADMIN_ID", "KILOCODE_API_KEY"]
+    fh.setFormatter(fmt)
+    root.addHandler(fh)
+    for noisy in ("telethon", "aiohttp", "asyncio"):
+        logging.getLogger(noisy).setLevel(logging.WARNING)
 
 
-def validate_env() -> None:
-    missing = [key for key in REQUIRED_ENV if not os.getenv(key)]
-    if missing:
-        print(f"[ERROR] Отсутствуют переменные окружения: {', '.join(missing)}")
-        print("Скопируй .envexample в .env и заполни значения.")
-        sys.exit(1)
-
-logger = logging.getLogger(__name__)
-
-_shutdown_event = asyncio.Event()
-
-
-def _handle_signal(signum, frame) -> None:
-    sig_name = signal.Signals(signum).name
-    logger.info(f"[Main] Получен сигнал {sig_name}, завершаю работу...")
-    _shutdown_event.set()
-
-
-async def safe_start_userbot() -> None:
-    from userbot import start_userbot
+async def _shutdown(client) -> None:
     try:
-        await start_userbot()
-    except Exception as e:
-        logger.error(f"[Userbot] Аварийное завершение: {e}", exc_info=True)
-        raise
-
-
-async def safe_start_control_bot() -> None:
-    from control_bot import start_control_bot
-    try:
-        await start_control_bot()
-    except Exception as e:
-        logger.error(f"[ControlBot] Аварийное завершение: {e}", exc_info=True)
-        raise
-
-
-async def shutdown() -> None:
-    """Graceful shutdown: отключаем клиентов, сохраняем состояние."""
-    logger.info("[Main] Завершение...")
-
-    try:
-        from userbot import client
-        if client.is_connected():
+        if client and client.is_connected():
             await client.disconnect()
-            logger.info("[Main] Telethon клиент отключён")
-    except Exception as e:
-        logger.warning(f"[Main] Ошибка при отключении Telethon: {e}")
-
-    try:
-        from ai_service import close_session
-        await close_session()
-        logger.info("[Main] aiohttp сессия закрыта")
-    except Exception as e:
-        logger.warning(f"[Main] Ошибка при закрытии сессии: {e}")
+    except Exception:
+        pass
+    await ai_service.close_session()
 
 
 async def main() -> None:
-    print("=" * 50)
-    print("  TG AI USERBOT")
-    print("=" * 50)
+    ai_service.load_histories()
 
-    # Загружаем историю чатов при старте
-    from ai_service import load_histories
-    load_histories()
+    if not config.is_complete():
+        if not await console.run_wizard() or not config.is_complete():
+            console.console.print(f"[{console.ERR}]настройка не завершена, выходим[/]")
+            return
 
-    tasks = [
-        asyncio.create_task(safe_start_userbot(), name="userbot"),
-        asyncio.create_task(safe_start_control_bot(), name="control_bot"),
-        asyncio.create_task(_shutdown_event.wait(), name="shutdown_watcher"),
-    ]
+    client = create_client()
+    if not await console.interactive_login(client):
+        console.console.print(f"[{console.ERR}]не удалось войти в Telegram[/]")
+        await _shutdown(client)
+        return
 
-    done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+    ai_service._limiter.set_rpm(providers.active_rpm())
 
-    for task in pending:
-        task.cancel()
-        try:
-            await task
-        except (asyncio.CancelledError, Exception):
-            pass
-
-    for task in done:
-        if task.get_name() == "shutdown_watcher":
-            continue
-        exc = task.exception() if not task.cancelled() else None
-        if exc:
-            logger.error(f"[Main] Задача '{task.get_name()}' завершилась с ошибкой: {exc}")
-
-    await shutdown()
-    logger.info("[Main] Остановлено")
+    try:
+        await console.main_menu(client)
+    finally:
+        await _shutdown(client)
 
 
 if __name__ == "__main__":
     setup_logging()
-    validate_env()
-
-    signal.signal(signal.SIGTERM, _handle_signal)
-    signal.signal(signal.SIGINT, _handle_signal)
-
     try:
         asyncio.run(main())
     except KeyboardInterrupt:

@@ -1,0 +1,67 @@
+{
+  "telegram": { "api_id": null, "api_hash": null, "phone": null },
+  "active_provider": "nvidia",
+  "active_model": "moonshotai/kimi-k2.6",
+  "providers": {
+    "nvidia": {
+      "label": "NVIDIA NIM",
+      "base_url": "https://integrate.api.nvidia.com/v1",
+      "api_key": "",
+      "key_hint": "nvapi-...",
+      "rpm": 40,
+      "models": ["moonshotai/kimi-k2.6", "deepseek-ai/deepseek-v4-flash"],
+      "recommended": true,
+      "signup": "https://build.nvidia.com"
+    },
+    "openrouter": {
+      "label": "OpenRouter",
+      "base_url": "https://openrouter.ai/api/v1",
+      "api_key": "",
+      "rpm": 200,
+      "models": ["deepseek/deepseek-chat"],
+      "signup": "https://openrouter.ai/keys"
+    },
+    "groq": {
+      "label": "Groq",
+      "base_url": "https://api.groq.com/openai/v1",
+      "api_key": "",
+      "rpm": 30,
+      "models": ["llama-3.3-70b-versatile"],
+      "signup": "https://console.groq.com/keys"
+    },
+    "google": {
+      "label": "Google AI Studio",
+      "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+      "api_key": "",
+      "rpm": 15,
+      "models": ["gemini-2.0-flash"],
+      "signup": "https://aistudio.google.com/app/apikey"
+    },
+    "openai_compat": {
+      "label": "OpenAI-compatible",
+      "base_url": "",
+      "api_key": "",
+      "rpm": 60,
+      "models": []
+    }
+  },
+  "persona": "troll",
+  "custom_prompt": "",
+  "language": "ru",
+  "bot_name": "бот",
+  "behavior": {
+    "enabled": true,
+    "reply_in_dm": true,
+    "reply_in_groups": true,
+    "reply_to_mentions": true,
+    "reply_to_replies": true,
+    "dm_new_dialogues_only": false,
+    "history_limit": 200,
+    "response_delay": 1.5,
+    "per_chat_cooldown": 3.0,
+    "ai_temperature": 0.85,
+    "ai_max_tokens": 500
+  },
+  "active_chats": [],
+  "blacklist_chats": []
+}

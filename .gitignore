@@ -1,0 +1,18 @@
+# local config with your keys and Telegram credentials
+config.json
+config.json.tmp
+
+# Telethon session
+*.session
+*.session-journal
+
+# runtime state
+histories.json
+histories.json.tmp
+bot.log
+bot.log.*
+
+__pycache__/
+*.pyc
+.venv/
+venv/

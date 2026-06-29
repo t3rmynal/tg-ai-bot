@@ -1,23 +1,33 @@
+"""AI client.
+
+Provider-agnostic: it reads the active provider's base_url, key and model from
+config and posts an OpenAI-style ``/chat/completions`` request. The system prompt
+comes from the selected persona.
+
+Rate limiting works in two layers:
+  - proactive: every call waits on a shared limiter so we stay under the provider's
+    requests-per-minute cap;
+  - reactive: on a 429 we honour Retry-After (or back off) and retry. If it still
+    won't go through, we raise RateLimited and the userbot quietly skips the reply -
+    nothing about the rate limit leaks into the chat. The next message tries again.
+"""
+
 import asyncio
 import json
 import logging
 import os
 
 import aiohttp
-from dotenv import load_dotenv
 
-load_dotenv()
+import config
+import personas
+import providers
+from ratelimit import AsyncRateLimiter
+from ratelimit import push as push_event
 
 logger = logging.getLogger(__name__)
 
-KILOCODE_API_KEY = os.getenv("KILOCODE_API_KEY")
-KILOCODE_URL = "https://api.kilo.ai/api/gateway/chat/completions"
-
-SYSTEM_PROMPT = """ты - живой человек по имени {bot_name}. общаешься как реальный человек в телеграме (смешной и остроумный, а не как формальный ассистент)
-"""
-
 HISTORIES_FILE = "histories.json"
-MAX_HISTORY = 20
 
 chat_histories: dict[int, list[dict]] = {}
 
@@ -25,9 +35,19 @@ stats = {
     "ai_calls": 0,
     "ai_errors": 0,
     "messages_processed": 0,
+    "rate_limited": 0,
 }
 
 _session: aiohttp.ClientSession | None = None
+_limiter = AsyncRateLimiter(40)
+
+
+class RateLimited(Exception):
+    """Provider kept returning 429 after our retries."""
+
+
+class AIError(Exception):
+    """Any other failure we don't want to surface into the chat."""
 
 
 def _get_session() -> aiohttp.ClientSession:
@@ -43,17 +63,18 @@ async def close_session() -> None:
         await _session.close()
         _session = None
 
+
 def load_histories() -> None:
     global chat_histories
     if not os.path.exists(HISTORIES_FILE):
         return
     try:
-        with open(HISTORIES_FILE, "r", encoding="utf-8") as f:
+        with open(HISTORIES_FILE, encoding="utf-8") as f:
             raw = json.load(f)
         chat_histories = {int(k): v for k, v in raw.items()}
-        logger.info(f"[AI] Загружена история {len(chat_histories)} чатов")
+        logger.info("[AI] загружена история %d чатов", len(chat_histories))
     except Exception as e:
-        logger.warning(f"[AI] Не удалось загрузить histories.json: {e}")
+        logger.warning("[AI] не смог прочитать histories.json: %s", e)
 
 
 def _save_histories() -> None:
@@ -63,19 +84,36 @@ def _save_histories() -> None:
             json.dump({str(k): v for k, v in chat_histories.items()}, f, ensure_ascii=False)
         os.replace(tmp, HISTORIES_FILE)
     except Exception as e:
-        logger.error(f"[AI] Ошибка сохранения histories.json: {e}")
+        logger.error("[AI] не смог сохранить histories.json: %s", e)
+
+
+def _history_limit() -> int:
+    return int(config.get("behavior.history_limit", 200) or 200)
 
 
 def get_history(chat_id: int) -> list[dict]:
     return chat_histories.get(chat_id, [])
 
 
+def has_history(chat_id: int) -> bool:
+    return bool(chat_histories.get(chat_id))
+
+
+def seed_history(chat_id: int, messages: list[dict]) -> None:
+    """Backfill a chat's context once (used when adding a chat). No-op if it
+    already has history."""
+    if chat_histories.get(chat_id):
+        return
+    limit = _history_limit()
+    chat_histories[chat_id] = messages[-limit:]
+    _save_histories()
+
+
 def add_to_history(chat_id: int, role: str, content: str) -> None:
-    if chat_id not in chat_histories:
-        chat_histories[chat_id] = []
-    chat_histories[chat_id].append({"role": role, "content": content})
-    if len(chat_histories[chat_id]) > MAX_HISTORY:
-        chat_histories[chat_id] = chat_histories[chat_id][-MAX_HISTORY:]
+    chat_histories.setdefault(chat_id, []).append({"role": role, "content": content})
+    limit = _history_limit()
+    if len(chat_histories[chat_id]) > limit:
+        chat_histories[chat_id] = chat_histories[chat_id][-limit:]
     _save_histories()
 
 
@@ -83,6 +121,7 @@ def clear_history(chat_id: int) -> None:
     if chat_id in chat_histories:
         del chat_histories[chat_id]
         _save_histories()
+
 
 def _parse_ai_response(data: dict) -> str | None:
     if "choices" in data and data["choices"]:
@@ -105,44 +144,50 @@ def _parse_ai_response(data: dict) -> str | None:
         return data["text"]
     return None
 
-async def ask_ai(
-    chat_id: int,
-    user_message: str,
-    bot_name: str | None = None,
-    extra_context: str = "",
-    max_tokens: int | None = None,
-    temperature: float | None = None,
-) -> str:
-    import storage
 
+def _retry_after(header_value: str | None, attempt: int) -> float:
+    """Seconds to wait before the next try. Honour Retry-After if it's a number,
+    otherwise back off exponentially."""
+    if header_value:
+        try:
+            return max(0.0, float(header_value))
+        except ValueError:
+            pass
+    return float(2 ** attempt)
+
+
+async def ask_ai(chat_id: int, user_message: str, extra_context: str = "") -> str:
     if not user_message or not user_message.strip():
-        raise ValueError("Сообщение не может быть пустым")
+        raise AIError("пустое сообщение")
 
     user_message = user_message.strip()
-    bot_name = bot_name.strip() if bot_name else "бот"
 
-    _max_tokens = max_tokens if max_tokens is not None else storage.get("ai_max_tokens")
-    _temperature = temperature if temperature is not None else storage.get("ai_temperature")
-    _model = storage.get("ai_model")
+    name, prov = providers.active()
+    base_url = (prov.get("base_url") or "").rstrip("/")
+    api_key = prov.get("api_key") or ""
+    model = config.get("active_model") or ""
+    if not base_url or not api_key or not model:
+        raise AIError(f"провайдер {name} не настроен (нет url/ключа/модели)")
 
-    add_to_history(chat_id, "user", user_message)
+    url = f"{base_url}/chat/completions"
+    system = personas.render()
+    if extra_context.strip():
+        system += f"\n\nдополнительный контекст: {extra_context.strip()}"
 
-    system = SYSTEM_PROMPT.format(bot_name=bot_name)
-    if extra_context and extra_context.strip():
-        system += f"\n\nДополнительный контекст: {extra_context.strip()}"
-
-    history = get_history(chat_id)
-    messages = [{"role": "system", "content": system}, *history]
-
+    messages = [
+        {"role": "system", "content": system},
+        *get_history(chat_id),
+        {"role": "user", "content": user_message},
+    ]
     payload = {
-        "model": _model,
+        "model": model,
         "messages": messages,
-        "max_tokens": _max_tokens,
-        "temperature": _temperature,
+        "max_tokens": config.get("behavior.ai_max_tokens", 500),
+        "temperature": config.get("behavior.ai_temperature", 0.85),
         "stream": False,
     }
     headers = {
-        "Authorization": f"Bearer {KILOCODE_API_KEY}",
+        "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
         "Accept": "application/json",
     }
@@ -150,70 +195,69 @@ async def ask_ai(
     stats["ai_calls"] += 1
     session = _get_session()
 
-    max_attempts = 3
+    # proactive spacing so we stay under the provider's RPM
+    _limiter.set_rpm(providers.active_rpm())
+    waited = await _limiter.acquire()
+    if waited > 0.5:
+        push_event("wait", f"жду {waited:.1f}с под лимит {name}")
+
+    max_attempts = 4
     for attempt in range(1, max_attempts + 1):
         try:
             async with session.post(
-                KILOCODE_URL,
-                json=payload,
-                headers=headers,
+                url, json=payload, headers=headers,
                 timeout=aiohttp.ClientTimeout(total=60),
             ) as resp:
                 if resp.status == 401:
-                    logger.error("[AI] Неверный API ключ")
                     stats["ai_errors"] += 1
-                    return "ошибка авторизации, проверь api ключ"
+                    raise AIError("неверный API-ключ")
 
                 if resp.status == 429:
-                    wait = 2 ** attempt
-                    logger.warning(f"[AI] Лимит запросов (429), жду {wait}s, попытка {attempt}/{max_attempts}")
+                    stats["rate_limited"] += 1
+                    wait = _retry_after(resp.headers.get("Retry-After"), attempt)
+                    logger.warning("[AI] 429, жду %.1fс (попытка %d/%d)", wait, attempt, max_attempts)
+                    push_event("wait", f"лимит {name}, жду {wait:.0f}с")
                     if attempt < max_attempts:
                         await asyncio.sleep(wait)
                         continue
-                    stats["ai_errors"] += 1
-                    return "слишком много запросов, попробуй позже"
+                    raise RateLimited(name)
 
                 if resp.status >= 500:
-                    wait = 2 ** attempt
-                    logger.warning(f"[AI] Серверная ошибка {resp.status}, жду {wait}s, попытка {attempt}/{max_attempts}")
+                    wait = float(2 ** attempt)
+                    logger.warning("[AI] %d, жду %.1fс (попытка %d/%d)", resp.status, wait, attempt, max_attempts)
                     if attempt < max_attempts:
                         await asyncio.sleep(wait)
                         continue
                     stats["ai_errors"] += 1
-                    return "сервис временно недоступен, попробуй позже"
+                    raise AIError(f"сервер вернул {resp.status}")
 
                 if resp.status >= 400:
-                    error_text = await resp.text()
-                    logger.error(f"[AI] HTTP {resp.status}: {error_text[:200]}")
+                    body = (await resp.text())[:200]
                     stats["ai_errors"] += 1
-                    return "ошибка при обработке запроса"
+                    raise AIError(f"HTTP {resp.status}: {body}")
 
                 data = await resp.json()
                 content = _parse_ai_response(data)
-
                 if not content:
-                    logger.warning(f"[AI] Неизвестный формат ответа: {str(data)[:300]}")
                     stats["ai_errors"] += 1
-                    return "не удалось обработать ответ, переформулируй"
+                    raise AIError(f"непонятный формат ответа: {str(data)[:200]}")
 
-                content = content.replace("—", "-").replace("–", "-")
+                content = content.replace("—", "-").replace("–", "-").strip()
+                add_to_history(chat_id, "user", user_message)
                 add_to_history(chat_id, "assistant", content)
                 stats["messages_processed"] += 1
                 return content
 
         except (aiohttp.ClientConnectorError, aiohttp.ServerTimeoutError) as e:
-            wait = 2 ** attempt
-            logger.warning(f"[AI] Сетевая ошибка: {e}, жду {wait}s, попытка {attempt}/{max_attempts}")
+            wait = float(2 ** attempt)
+            logger.warning("[AI] сеть: %s, жду %.1fс (попытка %d/%d)", e, wait, attempt, max_attempts)
             if attempt < max_attempts:
                 await asyncio.sleep(wait)
+                continue
+            stats["ai_errors"] += 1
+            raise AIError("нет связи с провайдером") from e
         except aiohttp.ClientError as e:
-            logger.error(f"[AI] Ошибка клиента: {e}")
             stats["ai_errors"] += 1
-            return "ошибка при отправке запроса"
-        except Exception as e:
-            logger.error(f"[AI] Непредвиденная ошибка: {type(e).__name__}: {e}")
-            stats["ai_errors"] += 1
-            return "произошла непредвиденная ошибка"
+            raise AIError(f"ошибка клиента: {e}") from e
 
-    stats["ai_errors"] += 1
-    return "нет подключения к интернету или сервис недоступен"
+    raise AIError("исчерпаны попытки")
