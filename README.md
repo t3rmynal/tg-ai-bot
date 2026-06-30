@@ -8,9 +8,8 @@
 ```
 
 An AI userbot for your own Telegram account. It watches incoming messages and
-replies for you, with the persona, provider and triggers you pick from a console
-menu. No control bot, no server, no `.env`. Everything lives in one `config.json`
-next to the code.
+replies using LLMs for you, with the persona, provider and triggers you pick from a console
+menu.
 
 [![Python](https://img.shields.io/badge/python-3.10+-3776AB?style=flat-square&logo=python&logoColor=white)](https://python.org)
 [![Telethon](https://img.shields.io/badge/telethon-1.24+-2CA5E0?style=flat-square&logo=telegram&logoColor=white)](https://github.com/LonamiWebs/Telethon)
@@ -18,36 +17,34 @@ next to the code.
 
 ## What it does
 
-You run it on your machine, scan a QR code to sign in, and it starts answering
-messages on your account using an AI model. The console keeps running next to the
+You run it on your machine, scan a QR code to sign into your telegram account, and it starts answering
+messages on your account using an AI text generation model. The console keeps running next to the
 Telethon client on the same event loop, so you can flip a setting and it applies
 to the next message without a reconnect.
 
 It only replies where you tell it to: DMs, group mentions, replies to your own
-messages, or a fixed whitelist of chats. A blacklist always wins.
+messages, or a fixed whitelist of chats. A blacklist has a priority.
 
 ## Features
 
 - QR login. No phone number, no SMS code. 2FA is handled if your account has it.
 - Works with any OpenAI-compatible provider. NVIDIA, OpenRouter, Groq, Google AI
-  Studio and Ollama are preloaded, and you can add your own.
-- Four built-in personas plus a custom prompt you can write or have the AI write
+  Studio and also Local Ollama Models are preloaded, and you can add your own.
+- Four built-in personas (system prompts) plus a custom prompt you can write or have the AI write
   for you (see below).
-- The bot reads its own `@username` from Telegram, so a persona knows who it is in
-  a group.
 - Two-layer rate limiting so you stay under free-tier caps instead of eating 429s.
 - Per-chat history that survives restarts, a live activity monitor, and a stats
-  screen.
+  screen (AI will always get the context of the chat).
 - Replies default to English. Switch to Russian per persona in the menu.
 
 ## Supported providers
 
 | Provider | Free tier | Get a key |
 |---|---|---|
-| NVIDIA NIM | ~40 req/min, plus starter credits | [build.nvidia.com](https://build.nvidia.com) |
+| NVIDIA NIM | ~40 req/min, free models usage | [build.nvidia.com](https://build.nvidia.com) |
 | OpenRouter | varies by model | [openrouter.ai/keys](https://openrouter.ai/keys) |
 | Groq | ~30 req/min | [console.groq.com/keys](https://console.groq.com/keys) |
-| Google AI Studio | ~15 req/min | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
+| Google AI Studio | ~5 req/min | [aistudio.google.com](https://aistudio.google.com/app/apikey) |
 | Ollama | local, hardware-bound | runs on `localhost`, no key |
 | OpenAI-compatible | your endpoint | any base URL you point it at |
 
