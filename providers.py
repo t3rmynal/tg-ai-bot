@@ -1,25 +1,18 @@
-"""AI provider registry.
+"""AI provider registry. Every provider speaks the OpenAI /chat/completions dialect.
 
-Every provider here talks the OpenAI ``/chat/completions`` dialect, so a single
-HTTP client in ai_service.py covers all of them. The console lets you switch the
-active provider, paste an API key, and add or remove models.
-
-The helper functions read and write through config.py. config.py imports this
-module for its defaults, so the config import below is done lazily inside each
-function to keep the two modules from importing each other at load time.
+config is imported lazily inside each helper to avoid a circular import.
 """
 
 import copy
 
-# rpm = requests per minute the free tier allows on a single key. ai_service uses
-# it to space out calls so we stay under the cap instead of getting 429'd.
+# rpm: free-tier requests per minute, used to space calls under the cap
 DEFAULT_PROVIDERS = {
     "nvidia": {
         "label": "NVIDIA NIM",
         "base_url": "https://integrate.api.nvidia.com/v1",
         "api_key": "",
         "key_hint": "nvapi-...",
-        "rpm": 40,  # free tier: ~40 req/min, shared across all models on the key
+        "rpm": 40,  # free tier, shared across models on the key
         "models": ["moonshotai/kimi-k2.6", "deepseek-ai/deepseek-v4-flash"],
         "recommended": True,
         "signup": "https://build.nvidia.com",
@@ -53,6 +46,18 @@ DEFAULT_PROVIDERS = {
         "models": ["gemini-2.0-flash"],
         "recommended": False,
         "signup": "https://aistudio.google.com/app/apikey",
+    },
+    "ollama": {
+        "label": "Ollama (local)",
+        "base_url": "http://localhost:11434/v1",
+        "api_key": "ollama",  # ignored by Ollama, but the client needs something
+        "key_hint": "not needed (Enter)",
+        "needs_key": False,
+        "supports_thinking": True,  # accepts think:true, reasoning in message.reasoning
+        "rpm": 120,  # local, only hardware-bound
+        "models": ["gemma4"],
+        "recommended": False,
+        "signup": "ollama run <model>",
     },
     "openai_compat": {
         "label": "OpenAI-compatible",
@@ -139,23 +144,3 @@ def remove_model(name: str, model: str) -> bool:
     if config.get("active_model") == model:
         config.set("active_model", mdls[0] if mdls else "")
     return True
-
-
-def is_ready() -> tuple[bool, str]:
-    """Whether the active provider can actually be called. Returns (ok, reason)."""
-    name, prov = active()
-    if not prov:
-        return False, "провайдер не выбран"
-    if not prov.get("base_url"):
-        return False, f"у провайдера {name} не задан base_url"
-    if not prov.get("api_key"):
-        return False, f"у провайдера {name} не задан API-ключ"
-    if not config_active_model():
-        return False, "не выбрана модель"
-    return True, ""
-
-
-def config_active_model() -> str:
-    import config
-
-    return config.get("active_model", "")

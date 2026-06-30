@@ -1,10 +1,7 @@
-"""Proactive rate limiting + a small activity feed for the dashboard.
+"""Proactive rate limiter plus a small activity feed for the dashboard.
 
-The limiter spaces out provider calls so the combined traffic stays under the
-provider's requests-per-minute cap. That is the "anti rate limit" idea: rather
-than hammering the API and eating 429s, we hold each call until enough time has
-passed since the previous one. ai_service still handles 429s reactively on top of
-this, but in practice the limiter keeps us under the cap.
+The limiter holds each call until enough time has passed to stay under the
+provider RPM. ai_service handles 429s reactively on top of this.
 """
 
 import asyncio

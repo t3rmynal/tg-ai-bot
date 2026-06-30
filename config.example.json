@@ -1,5 +1,5 @@
 {
-  "telegram": { "api_id": null, "api_hash": null, "phone": null },
+  "telegram": { "api_id": null, "api_hash": null },
   "active_provider": "nvidia",
   "active_model": "moonshotai/kimi-k2.6",
   "providers": {
@@ -45,10 +45,10 @@
       "models": []
     }
   },
-  "persona": "troll",
+  "persona": "assistant",
   "custom_prompt": "",
-  "language": "ru",
-  "bot_name": "бот",
+  "language": "en",
+  "bot_name": "",
   "behavior": {
     "enabled": true,
     "reply_in_dm": true,
