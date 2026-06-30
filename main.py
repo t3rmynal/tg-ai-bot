@@ -1,9 +1,4 @@
-"""Entry point.
-
-One asyncio loop runs both the Telethon client and the console menu, so the bot
-keeps answering while you're in the menus. Logs go to bot.log only - stdout
-belongs to the console UI.
-"""
+"""Entry point. One asyncio loop runs the Telethon client and the console menu."""
 
 import asyncio
 import logging
@@ -12,6 +7,7 @@ import logging.handlers
 import ai_service
 import config
 import console
+import personas
 import providers
 from userbot import create_client
 
@@ -43,15 +39,17 @@ async def main() -> None:
 
     if not config.is_complete():
         if not await console.run_wizard() or not config.is_complete():
-            console.console.print(f"[{console.ERR}]настройка не завершена, выходим[/]")
+            console.console.print(f"[{console.ERR}]setup not finished, exiting[/]")
             return
 
     client = create_client()
     if not await console.interactive_login(client):
-        console.console.print(f"[{console.ERR}]не удалось войти в Telegram[/]")
+        console.console.print(f"[{console.ERR}]could not sign in to Telegram[/]")
         await _shutdown(client)
         return
 
+    me = await client.get_me()
+    personas.set_identity(me.username or "", me.first_name or "")
     ai_service._limiter.set_rpm(providers.active_rpm())
 
     try:

@@ -1,21 +1,18 @@
-"""AI client.
+"""AI client. Provider-agnostic OpenAI-style /chat/completions over aiohttp.
 
-Provider-agnostic: it reads the active provider's base_url, key and model from
-config and posts an OpenAI-style ``/chat/completions`` request. The system prompt
-comes from the selected persona.
-
-Rate limiting works in two layers:
-  - proactive: every call waits on a shared limiter so we stay under the provider's
-    requests-per-minute cap;
-  - reactive: on a 429 we honour Retry-After (or back off) and retry. If it still
-    won't go through, we raise RateLimited and the userbot quietly skips the reply -
-    nothing about the rate limit leaks into the chat. The next message tries again.
+Two rate-limit layers: a proactive limiter spaces calls under the provider RPM,
+and a reactive retry loop honours Retry-After and backs off on 429/5xx. When a
+call still fails we raise RateLimited/AIError and the userbot drops the reply,
+so nothing about the limit leaks into the chat.
 """
 
 import asyncio
 import json
 import logging
 import os
+import random
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 
 import aiohttp
 
@@ -28,6 +25,8 @@ from ratelimit import push as push_event
 logger = logging.getLogger(__name__)
 
 HISTORIES_FILE = "histories.json"
+MAX_BACKOFF = 60.0
+MAX_ATTEMPTS = 4
 
 chat_histories: dict[int, list[dict]] = {}
 
@@ -64,6 +63,8 @@ async def close_session() -> None:
         _session = None
 
 
+# history
+
 def load_histories() -> None:
     global chat_histories
     if not os.path.exists(HISTORIES_FILE):
@@ -72,9 +73,9 @@ def load_histories() -> None:
         with open(HISTORIES_FILE, encoding="utf-8") as f:
             raw = json.load(f)
         chat_histories = {int(k): v for k, v in raw.items()}
-        logger.info("[AI] загружена история %d чатов", len(chat_histories))
+        logger.info("[AI] loaded history for %d chats", len(chat_histories))
     except Exception as e:
-        logger.warning("[AI] не смог прочитать histories.json: %s", e)
+        logger.warning("[AI] could not read histories.json: %s", e)
 
 
 def _save_histories() -> None:
@@ -84,7 +85,7 @@ def _save_histories() -> None:
             json.dump({str(k): v for k, v in chat_histories.items()}, f, ensure_ascii=False)
         os.replace(tmp, HISTORIES_FILE)
     except Exception as e:
-        logger.error("[AI] не смог сохранить histories.json: %s", e)
+        logger.error("[AI] could not save histories.json: %s", e)
 
 
 def _history_limit() -> int:
@@ -100,12 +101,10 @@ def has_history(chat_id: int) -> bool:
 
 
 def seed_history(chat_id: int, messages: list[dict]) -> None:
-    """Backfill a chat's context once (used when adding a chat). No-op if it
-    already has history."""
+    """Backfill a chat's context once. No-op if it already has history."""
     if chat_histories.get(chat_id):
         return
-    limit = _history_limit()
-    chat_histories[chat_id] = messages[-limit:]
+    chat_histories[chat_id] = messages[-_history_limit():]
     _save_histories()
 
 
@@ -122,6 +121,8 @@ def clear_history(chat_id: int) -> None:
         del chat_histories[chat_id]
         _save_histories()
 
+
+# response parsing
 
 def _parse_ai_response(data: dict) -> str | None:
     if "choices" in data and data["choices"]:
@@ -145,47 +146,69 @@ def _parse_ai_response(data: dict) -> str | None:
     return None
 
 
+def _extract_reasoning(data: dict) -> str | None:
+    """Pull a thinking trace out of the response if present. Logged, never sent."""
+    try:
+        msg = data["choices"][0].get("message", {})
+    except (KeyError, IndexError):
+        return None
+    for key in ("reasoning", "reasoning_content", "thinking"):
+        val = msg.get(key)
+        if val:
+            return str(val)
+    return None
+
+
+def _sanitize(content: str) -> str:
+    return content.replace("—", "-").replace("–", "-").strip()
+
+
+# rate-limit timing
+
+def _backoff(attempt: int) -> float:
+    base = min(2.0 ** attempt, MAX_BACKOFF)
+    return base + random.uniform(0.0, base * 0.25)
+
+
 def _retry_after(header_value: str | None, attempt: int) -> float:
-    """Seconds to wait before the next try. Honour Retry-After if it's a number,
-    otherwise back off exponentially."""
+    """Seconds to wait. Honour Retry-After (numeric or HTTP-date), clamp, else back off."""
     if header_value:
+        value = header_value.strip()
         try:
-            return max(0.0, float(header_value))
+            return min(max(0.0, float(value)), MAX_BACKOFF)
         except ValueError:
             pass
-    return float(2 ** attempt)
+        try:
+            when = parsedate_to_datetime(value)
+            if when is not None:
+                if when.tzinfo is None:
+                    when = when.replace(tzinfo=timezone.utc)
+                delta = (when - datetime.now(timezone.utc)).total_seconds()
+                return min(max(0.0, delta), MAX_BACKOFF)
+        except (TypeError, ValueError):
+            pass
+    return _backoff(attempt)
 
 
-async def ask_ai(chat_id: int, user_message: str, extra_context: str = "") -> str:
-    if not user_message or not user_message.strip():
-        raise AIError("пустое сообщение")
+# core call
 
-    user_message = user_message.strip()
-
+async def _chat_completion(messages: list[dict], *, max_tokens: int, temperature: float) -> str:
     name, prov = providers.active()
     base_url = (prov.get("base_url") or "").rstrip("/")
     api_key = prov.get("api_key") or ""
     model = config.get("active_model") or ""
     if not base_url or not api_key or not model:
-        raise AIError(f"провайдер {name} не настроен (нет url/ключа/модели)")
+        raise AIError(f"provider {name} not configured (missing url/key/model)")
 
-    url = f"{base_url}/chat/completions"
-    system = personas.render()
-    if extra_context.strip():
-        system += f"\n\nдополнительный контекст: {extra_context.strip()}"
-
-    messages = [
-        {"role": "system", "content": system},
-        *get_history(chat_id),
-        {"role": "user", "content": user_message},
-    ]
     payload = {
         "model": model,
         "messages": messages,
-        "max_tokens": config.get("behavior.ai_max_tokens", 500),
-        "temperature": config.get("behavior.ai_temperature", 0.85),
+        "max_tokens": max_tokens,
+        "temperature": temperature,
         "stream": False,
     }
+    if config.get("behavior.ai_thinking", False) and prov.get("supports_thinking", False):
+        payload["think"] = True
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json",
@@ -195,14 +218,13 @@ async def ask_ai(chat_id: int, user_message: str, extra_context: str = "") -> st
     stats["ai_calls"] += 1
     session = _get_session()
 
-    # proactive spacing so we stay under the provider's RPM
     _limiter.set_rpm(providers.active_rpm())
     waited = await _limiter.acquire()
     if waited > 0.5:
-        push_event("wait", f"жду {waited:.1f}с под лимит {name}")
+        push_event("wait", f"waiting {waited:.1f}s under {name} limit")
 
-    max_attempts = 4
-    for attempt in range(1, max_attempts + 1):
+    url = f"{base_url}/chat/completions"
+    for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
             async with session.post(
                 url, json=payload, headers=headers,
@@ -210,26 +232,26 @@ async def ask_ai(chat_id: int, user_message: str, extra_context: str = "") -> st
             ) as resp:
                 if resp.status == 401:
                     stats["ai_errors"] += 1
-                    raise AIError("неверный API-ключ")
+                    raise AIError("invalid API key")
 
                 if resp.status == 429:
                     stats["rate_limited"] += 1
                     wait = _retry_after(resp.headers.get("Retry-After"), attempt)
-                    logger.warning("[AI] 429, жду %.1fс (попытка %d/%d)", wait, attempt, max_attempts)
-                    push_event("wait", f"лимит {name}, жду {wait:.0f}с")
-                    if attempt < max_attempts:
+                    logger.warning("[AI] 429, waiting %.1fs (try %d/%d)", wait, attempt, MAX_ATTEMPTS)
+                    push_event("wait", f"{name} limit, waiting {wait:.0f}s")
+                    if attempt < MAX_ATTEMPTS:
                         await asyncio.sleep(wait)
                         continue
                     raise RateLimited(name)
 
                 if resp.status >= 500:
-                    wait = float(2 ** attempt)
-                    logger.warning("[AI] %d, жду %.1fс (попытка %d/%d)", resp.status, wait, attempt, max_attempts)
-                    if attempt < max_attempts:
+                    wait = _backoff(attempt)
+                    logger.warning("[AI] %d, waiting %.1fs (try %d/%d)", resp.status, wait, attempt, MAX_ATTEMPTS)
+                    if attempt < MAX_ATTEMPTS:
                         await asyncio.sleep(wait)
                         continue
                     stats["ai_errors"] += 1
-                    raise AIError(f"сервер вернул {resp.status}")
+                    raise AIError(f"server returned {resp.status}")
 
                 if resp.status >= 400:
                     body = (await resp.text())[:200]
@@ -240,24 +262,85 @@ async def ask_ai(chat_id: int, user_message: str, extra_context: str = "") -> st
                 content = _parse_ai_response(data)
                 if not content:
                     stats["ai_errors"] += 1
-                    raise AIError(f"непонятный формат ответа: {str(data)[:200]}")
+                    raise AIError(f"unexpected response shape: {str(data)[:200]}")
 
-                content = content.replace("—", "-").replace("–", "-").strip()
-                add_to_history(chat_id, "user", user_message)
-                add_to_history(chat_id, "assistant", content)
-                stats["messages_processed"] += 1
-                return content
+                reasoning = _extract_reasoning(data)
+                if reasoning:
+                    logger.info("[AI] thinking:\n%s", reasoning)
+                    push_event("info", f"thought: {reasoning[:60]}")
+
+                return _sanitize(content)
 
         except (aiohttp.ClientConnectorError, aiohttp.ServerTimeoutError) as e:
-            wait = float(2 ** attempt)
-            logger.warning("[AI] сеть: %s, жду %.1fс (попытка %d/%d)", e, wait, attempt, max_attempts)
-            if attempt < max_attempts:
+            wait = _backoff(attempt)
+            logger.warning("[AI] network: %s, waiting %.1fs (try %d/%d)", e, wait, attempt, MAX_ATTEMPTS)
+            if attempt < MAX_ATTEMPTS:
                 await asyncio.sleep(wait)
                 continue
             stats["ai_errors"] += 1
-            raise AIError("нет связи с провайдером") from e
+            raise AIError("no connection to provider") from e
         except aiohttp.ClientError as e:
             stats["ai_errors"] += 1
-            raise AIError(f"ошибка клиента: {e}") from e
+            raise AIError(f"client error: {e}") from e
 
-    raise AIError("исчерпаны попытки")
+    raise AIError("retries exhausted")
+
+
+async def ask_ai(chat_id: int, user_message: str, extra_context: str = "") -> str:
+    if not user_message or not user_message.strip():
+        raise AIError("empty message")
+    user_message = user_message.strip()
+
+    system = personas.render()
+    if extra_context.strip():
+        system += f"\n\nextra context: {extra_context.strip()}"
+
+    messages = [
+        {"role": "system", "content": system},
+        *get_history(chat_id),
+        {"role": "user", "content": user_message},
+    ]
+    content = await _chat_completion(
+        messages,
+        max_tokens=config.get("behavior.ai_max_tokens", 500),
+        temperature=config.get("behavior.ai_temperature", 0.85),
+    )
+    add_to_history(chat_id, "user", user_message)
+    add_to_history(chat_id, "assistant", content)
+    stats["messages_processed"] += 1
+    return content
+
+
+async def generate_system_prompt(name: str, kind: str, tone: str, lang: str, extra: str = "") -> str:
+    """Ask the active provider to write a persona system prompt. Falls back offline."""
+    label = personas.language_label(lang)
+    acts = "a real person (never admits being an AI)" if kind == "human" else "an AI assistant (honest about being one)"
+    spec = (
+        f"Name: {name or 'the bot'}\n"
+        f"Acts as: {acts}\n"
+        f"Tone and personality: {tone or 'natural and friendly'}\n"
+        f"Extra flavor: {extra or 'none'}\n"
+        f"Reply language: {label}"
+    )
+    meta = (
+        "You are an expert prompt engineer. Write a system prompt for a Telegram "
+        "chat persona from the spec below. Write in the second person ('you are...'), "
+        "keep it concise and concrete, output only the prompt with no markdown, no "
+        "preamble, and no long dashes. Spec:\n\n" + spec
+    )
+    try:
+        out = await _chat_completion(
+            [{"role": "system", "content": meta}],
+            max_tokens=600,
+            temperature=0.9,
+        )
+    except (AIError, RateLimited):
+        return personas.build_custom(name, kind, tone, lang, extra)
+
+    out = out.strip()
+    if personas._GUARDRAILS not in out:
+        out += "\n" + personas._GUARDRAILS
+    lang_line = f"reply in {label}."
+    if lang_line.lower() not in out.lower():
+        out += "\n" + lang_line
+    return _sanitize(out)

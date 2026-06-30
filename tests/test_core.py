@@ -39,6 +39,13 @@ def test_rate_limiter_spaces_calls():
     assert waited >= 0.08
 
 
+def test_retry_after_parsing():
+    assert ai_service._retry_after("5", 1) == 5.0
+    assert ai_service._retry_after("99999", 1) == ai_service.MAX_BACKOFF   # clamped
+    assert ai_service._retry_after("Wed, 21 Oct 2015 07:28:00 GMT", 1) == 0.0  # past date
+    assert ai_service._retry_after("garbage", 1) > 0.0                     # falls back to backoff
+
+
 # ── config ───────────────────────────────────────────────────────────────
 
 def test_deep_merge_fills_missing():
@@ -80,19 +87,19 @@ def test_add_and_remove_model():
 # ── personas ─────────────────────────────────────────────────────────────
 
 def test_render_uses_name_and_language():
-    config.set("persona", "troll")
-    config.set("bot_name", "кулебяка")
+    config.set("persona", "assistant")
+    config.set("bot_name", "kulebyaka")
     config.set("language", "en")
     out = personas.render()
-    assert "кулебяка" in out
+    assert "kulebyaka" in out
     assert "English" in out
 
 
 def test_build_custom_keeps_guardrails():
-    out = personas.build_custom("боб", "бот", "дружелюбный", "ru", "люби котов")
-    assert "котов" in out
-    assert "без угроз" in out          # guardrail line present
-    assert "русском" in out
+    out = personas.build_custom("bob", "bot", "friendly", "en", "love cats")
+    assert "cats" in out
+    assert "no threats" in out          # guardrail line present
+    assert "English" in out
 
 
 # ── userbot DM decision ──────────────────────────────────────────────────
@@ -100,7 +107,7 @@ def test_build_custom_keeps_guardrails():
 class _FakeMsg:
     def __init__(self, mid=1):
         self.id = mid
-        self.text = "привет"
+        self.text = "hi"
         self.entities = None
         self.reply_to = None
 
@@ -181,7 +188,7 @@ def _setup_provider():
 def test_429_then_success(monkeypatch, tmp_path):
     _setup_provider()
     monkeypatch.setattr(ai_service, "HISTORIES_FILE", str(tmp_path / "h.json"))
-    ok = {"choices": [{"message": {"content": "привет — друг"}}]}
+    ok = {"choices": [{"message": {"content": "hello — friend"}}]}
     session = _FakeSession([
         _FakeResp(429, headers={"Retry-After": "0"}),
         _FakeResp(200, ok),
@@ -189,7 +196,7 @@ def test_429_then_success(monkeypatch, tmp_path):
     monkeypatch.setattr(ai_service, "_get_session", lambda: session)
 
     out = asyncio.run(ai_service.ask_ai(1, "hi"))
-    assert out == "привет - друг"          # em-dash normalised
+    assert out == "hello - friend"          # em-dash normalised
     assert ai_service.stats["rate_limited"] >= 1
 
 

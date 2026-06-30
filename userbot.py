@@ -1,13 +1,7 @@
-"""Telethon userbot.
+"""Telethon userbot. Decides whether to answer a message and sends the AI reply.
 
-Listens to incoming messages on your account and decides whether to answer:
-  - DMs (master switch, optional "new dialogues only")
-  - group @mentions and replies to the bot's own messages
-The whitelist / blacklist and the dm/group switches all come from config and are
-read live, so toggling them in the console takes effect on the next message.
-
-When the AI is rate limited the reply is simply skipped - nothing leaks into the
-chat. The activity feed shows what happened.
+Triggers (all read live from config): DMs, group @mentions, replies to the bot.
+A rate-limited reply is skipped silently.
 """
 
 import asyncio
@@ -102,8 +96,7 @@ async def is_mentioned(message, my_username: str, my_id: int) -> bool:
 
 
 async def _seed_context(event, chat_id: int) -> None:
-    """For a manually added chat with no local history, backfill the recent
-    conversation (up to history_limit) so the AI has the full context."""
+    """Backfill recent messages for a whitelisted chat that has no local history."""
     if ai_service.has_history(chat_id):
         return
     limit = config.get("behavior.history_limit", 200) or 200
@@ -111,7 +104,7 @@ async def _seed_context(event, chat_id: int) -> None:
     try:
         msgs = await event.client.get_messages(chat_id, limit=limit)
     except Exception as e:
-        logger.warning("[Userbot] не смог подгрузить историю %s: %s", chat_id, e)
+        logger.warning("[Userbot] could not load history for %s: %s", chat_id, e)
         return
     for m in reversed(msgs):  # oldest first
         if not m.text or m.id == event.message.id:
@@ -119,15 +112,14 @@ async def _seed_context(event, chat_id: int) -> None:
         seed.append({"role": "assistant" if m.out else "user", "content": m.text})
     if seed:
         ai_service.seed_history(chat_id, seed)
-        push_event("info", f"подгрузил контекст чата {chat_id} ({len(seed)} сообщ.)")
+        push_event("info", f"seeded context for chat {chat_id} ({len(seed)} msgs)")
 
 
 async def _should_respond(event, message, chat_id: int, is_group: bool) -> bool:
     b = config.get("behavior", {})
     whitelisted = chat_id in config.get("active_chats", [])
 
-    # manually added chats always answer, ignoring the dm/group switches
-    if whitelisted:
+    if whitelisted:  # whitelisted chats always answer
         return True
 
     if is_group:
@@ -146,7 +138,7 @@ async def _should_respond(event, message, chat_id: int, is_group: bool) -> bool:
     if b.get("dm_new_dialogues_only", False):
         try:
             msgs = await event.client.get_messages(chat_id, limit=2)
-            if len(msgs) > 1:  # there was history before this message
+            if len(msgs) > 1:  # history existed before this message
                 return False
         except Exception:
             pass
@@ -178,13 +170,13 @@ async def handle_message(event):
     if my_username:
         user_text = re.sub(rf"@{re.escape(my_username)}", "", user_text, flags=re.IGNORECASE).strip()
     if not user_text:
-        user_text = "привет"
+        user_text = "hi"
 
     sender = await event.get_sender()
     sender_name = ""
     if sender:
         sender_name = getattr(sender, "first_name", None) or getattr(sender, "title", "")
-    extra_context = f"тебе пишет: {sender_name}" if sender_name else ""
+    extra_context = f"the person writing to you: {sender_name}" if sender_name else ""
 
     push_event("incoming", f"{sender_name or chat_id}: {user_text[:50]}")
 
@@ -196,12 +188,12 @@ async def handle_message(event):
         async with event.client.action(chat_id, "typing"):
             response = await ask_ai(chat_id, user_text, extra_context)
     except RateLimited:
-        push_event("wait", f"лимит провайдера, пропускаю ответ в {chat_id}")
-        logger.info("[Userbot] rate limited, пропускаю %s", chat_id)
+        push_event("wait", f"provider limit, skipping reply in {chat_id}")
+        logger.info("[Userbot] rate limited, skipping %s", chat_id)
         return
     except AIError as e:
-        push_event("error", f"ошибка ИИ: {e}")
-        logger.warning("[Userbot] ошибка ИИ в %s: %s", chat_id, e)
+        push_event("error", f"AI error: {e}")
+        logger.warning("[Userbot] AI error in %s: %s", chat_id, e)
         return
 
     _mark_replied(chat_id)
@@ -212,10 +204,10 @@ async def handle_message(event):
             sent = await event.client.send_message(chat_id, response)
         _track_sent(sent.id)
         push_event("reply", f"-> {chat_id}: {response[:50]}")
-        logger.info("[Userbot] ответил в %s", chat_id)
+        logger.info("[Userbot] replied in %s", chat_id)
     except Exception as e:
-        push_event("error", f"не отправилось в {chat_id}: {e}")
-        logger.error("[Userbot] не смог отправить в %s: %s", chat_id, e)
+        push_event("error", f"send failed in {chat_id}: {e}")
+        logger.error("[Userbot] could not send to %s: %s", chat_id, e)
 
 
 async def track_own_messages(event):

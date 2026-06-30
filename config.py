@@ -1,11 +1,4 @@
-"""Configuration store.
-
-Everything lives in ``config.json`` next to the code, written by the console app.
-There is no .env anymore and no control-bot token. Reads go through ``get`` with a
-dotted path (``behavior.reply_in_dm``); writes go through ``set`` and are saved
-atomically. The userbot reads this on every message, so changes made from the menu
-take effect immediately without reconnecting.
-"""
+"""Config store backed by config.json. Dotted-path get/set, atomic writes."""
 
 import copy
 import json
@@ -20,14 +13,14 @@ logger = logging.getLogger(__name__)
 CONFIG_FILE = "config.json"
 
 DEFAULTS = {
-    "telegram": {"api_id": None, "api_hash": None, "phone": None},
+    "telegram": {"api_id": None, "api_hash": None},
     "active_provider": "nvidia",
     "providers": providers.default_providers(),
     "active_model": "moonshotai/kimi-k2.6",
-    "persona": "troll",
+    "persona": "assistant",
     "custom_prompt": "",
-    "language": "ru",
-    "bot_name": "бот",
+    "language": "en",
+    "bot_name": "",
     "behavior": {
         "enabled": True,
         "reply_in_dm": True,
@@ -40,6 +33,7 @@ DEFAULTS = {
         "per_chat_cooldown": 3.0,
         "ai_temperature": 0.85,
         "ai_max_tokens": 500,
+        "ai_thinking": False,
     },
     "active_chats": [],
     "blacklist_chats": [],
@@ -71,7 +65,7 @@ def load() -> dict:
             raw = json.load(f)
         _data = _deep_merge(DEFAULTS, raw)
     except Exception as e:
-        logger.error("не удалось прочитать config.json (%s), беру дефолты", e)
+        logger.error("could not read config.json (%s), using defaults", e)
         _data = copy.deepcopy(DEFAULTS)
     return _data
 
@@ -83,7 +77,7 @@ def _save_unlocked() -> None:
             json.dump(_data, f, ensure_ascii=False, indent=2)
         os.replace(tmp, CONFIG_FILE)
     except Exception as e:
-        logger.error("не удалось сохранить config.json: %s", e)
+        logger.error("could not save config.json: %s", e)
         try:
             os.unlink(tmp)
         except OSError:
@@ -140,19 +134,20 @@ def remove_from_list(list_name: str, chat_id: int) -> bool:
 
 
 def is_complete() -> bool:
-    """True once the first-run wizard has supplied the essentials."""
+    """True once the first-run wizard has the essentials."""
     tg = _data.get("telegram", {})
-    if not (tg.get("api_id") and tg.get("api_hash") and tg.get("phone")):
+    if not (tg.get("api_id") and tg.get("api_hash")):
         return False
     name, prov = providers.active()
-    if not prov.get("base_url") or not prov.get("api_key"):
+    if not prov.get("base_url"):
+        return False
+    if prov.get("needs_key", True) and not prov.get("api_key"):  # local providers skip the key
         return False
     return bool(_data.get("active_model"))
 
 
 def is_chat_allowed(chat_id: int) -> bool:
-    """enabled + blacklist + whitelist gate. The dm/group master switches and the
-    mention/reply triggers are handled in userbot.py."""
+    """enabled + blacklist + whitelist gate. dm/group switches live in userbot.py."""
     b = _data.get("behavior", {})
     if not b.get("enabled", True):
         return False
@@ -164,5 +159,5 @@ def is_chat_allowed(chat_id: int) -> bool:
     return True
 
 
-# Load on import so other modules can read config immediately.
+# load on import so other modules can read config immediately
 load()
