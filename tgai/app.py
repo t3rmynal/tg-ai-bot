@@ -12,6 +12,7 @@ from tgai import providers
 from tgai.ai_service import AIService
 from tgai.config import ConfigStore
 from tgai.personas import Identity
+from tgai.proxy import ProxyManager
 from tgai.ratelimit import ActivityFeed
 from tgai.telegram.auth import AuthManager
 from tgai.telegram.bot import BotRunner
@@ -29,6 +30,7 @@ class AppState:
     auth: AuthManager
     bot: BotRunner
     updates: UpdateChecker
+    proxy: ProxyManager
     started_at: float = field(default_factory=monotonic)
 
 
@@ -37,15 +39,19 @@ def build_state(config_path: str = "config.json", histories_path: str = "histori
     cfg.load()
     feed = ActivityFeed()
     identity = Identity()
-    ai = AIService(cfg, feed, identity, histories_path=histories_path)
+    proxy = ProxyManager(cfg)
+    ai = AIService(cfg, feed, identity, histories_path=histories_path, proxy=proxy)
     ai.load_histories()
     ai.limiter.set_rpm(providers.active_rpm(cfg))
-    auth = AuthManager(cfg, feed, identity)
+    auth = AuthManager(cfg, feed, identity, proxy=proxy)
     bot = BotRunner(cfg, ai, feed, identity)
     auth.on_authorized = lambda: bot.attach(auth.client)
     auth.on_logout = bot.detach
     updates = UpdateChecker(cfg.get("update_repo") or DEFAULT_REPO)
-    return AppState(cfg=cfg, feed=feed, identity=identity, ai=ai, auth=auth, bot=bot, updates=updates)
+    return AppState(
+        cfg=cfg, feed=feed, identity=identity, ai=ai, auth=auth, bot=bot,
+        updates=updates, proxy=proxy,
+    )
 
 
 def setup_logging() -> None:

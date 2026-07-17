@@ -82,3 +82,24 @@ class EnabledIn(BaseModel):
 class TestChatIn(BaseModel):
     message: str = Field(min_length=1)
     history: list[dict] = []
+
+
+class ProxyPatch(BaseModel):
+    enabled: bool | None = None
+    mode: str | None = Field(default=None, pattern="^(manual|mullvad)$")
+    rotation: str | None = Field(default=None, pattern="^(off|per_request|per_n)$")
+    rotate_every: int | None = Field(default=None, ge=1, le=1000)
+    apply_to_telegram: bool | None = None
+    mullvad_country: str | None = Field(default=None, max_length=2)
+
+
+class ProxyUrlIn(BaseModel):
+    url: str = Field(min_length=3)
+
+
+class MullvadRefreshIn(BaseModel):
+    country: str = Field(default="", max_length=2)
+
+
+class ProxyTestIn(BaseModel):
+    url: str = ""

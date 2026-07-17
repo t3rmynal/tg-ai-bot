@@ -10,6 +10,7 @@ from tgai.ai_service import AIService
 from tgai.app import AppState
 from tgai.config import ConfigStore
 from tgai.personas import Identity
+from tgai.proxy import ProxyManager
 from tgai.ratelimit import ActivityFeed
 from tgai.telegram.auth import AuthManager
 from tgai.telegram.bot import BotRunner
@@ -81,10 +82,11 @@ class FakeQRLogin:
 class FakeTelegramClient:
     """Just enough of the telethon client for auth and dialog tests."""
 
-    def __init__(self, session, api_id, api_hash):
+    def __init__(self, session, api_id, api_hash, proxy=None):
         self.session_name = session
         self.api_id = api_id
         self.api_hash = api_hash
+        self.proxy = proxy
         self.connected = False
         self.authorized = False
         self.password = "hunter2"
@@ -130,19 +132,21 @@ def make_state(tmp_path, responses=None) -> AppState:
     cfg.load()
     feed = ActivityFeed()
     identity = Identity()
+    proxy = ProxyManager(cfg)
     session = FakeSession(responses)
     ai = AIService(
         cfg, feed, identity,
         histories_path=str(tmp_path / "histories.json"),
         session_factory=lambda: session,
+        proxy=proxy,
     )
-    auth = AuthManager(cfg, feed, identity)
+    auth = AuthManager(cfg, feed, identity, proxy=proxy)
     bot = BotRunner(cfg, ai, feed, identity)
     auth.on_authorized = lambda: bot.attach(auth.client)
     auth.on_logout = bot.detach
     state = AppState(
         cfg=cfg, feed=feed, identity=identity, ai=ai, auth=auth, bot=bot,
-        updates=UpdateChecker("example/repo"),
+        updates=UpdateChecker("example/repo"), proxy=proxy,
     )
     state.fake_session = session  # type: ignore[attr-defined]
     return state

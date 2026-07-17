@@ -132,5 +132,17 @@
     "ai_thinking": false
   },
   "active_chats": [],
-  "blacklist_chats": []
+  "blacklist_chats": [],
+  "proxy": {
+    "enabled": false,
+    "mode": "manual",
+    "rotation": "off",
+    "rotate_every": 10,
+    "apply_to_telegram": false,
+    "manual": [],
+    "mullvad": {
+      "country": "",
+      "loaded": []
+    }
+  }
 }

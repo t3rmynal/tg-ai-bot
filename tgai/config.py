@@ -42,6 +42,15 @@ def _defaults() -> dict:
         },
         "active_chats": [],
         "blacklist_chats": [],
+        "proxy": {
+            "enabled": False,
+            "mode": "manual",  # manual | mullvad
+            "rotation": "off",  # off | per_request | per_n
+            "rotate_every": 10,
+            "apply_to_telegram": False,
+            "manual": [],  # ["socks5://user:pass@host:port", ...]
+            "mullvad": {"country": "", "loaded": []},
+        },
     }
 
 

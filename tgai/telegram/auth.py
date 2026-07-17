@@ -35,10 +35,11 @@ class AuthState(str, Enum):
 class AuthManager:
     """Owns the Telethon client and the login flow."""
 
-    def __init__(self, cfg: ConfigStore, feed: ActivityFeed, identity: Identity):
+    def __init__(self, cfg: ConfigStore, feed: ActivityFeed, identity: Identity, proxy=None):
         self.cfg = cfg
         self.feed = feed
         self.identity = identity
+        self.proxy = proxy
         self.client: TelegramClient | None = None
         self.state = AuthState.NO_CREDENTIALS
         self.on_authorized = None  # set by app wiring
@@ -76,7 +77,10 @@ class AuthManager:
 
     async def _connect(self, api_id: int, api_hash: str) -> None:
         self.state = AuthState.CONNECTING
-        self.client = TelegramClient(SESSION_NAME, api_id, api_hash)
+        tg_proxy = self.proxy.telegram_proxy() if self.proxy else None
+        if tg_proxy:
+            self.feed.push("info", "telegram connecting through proxy")
+        self.client = TelegramClient(SESSION_NAME, api_id, api_hash, proxy=tg_proxy)
         try:
             await self.client.connect()
         except Exception as e:

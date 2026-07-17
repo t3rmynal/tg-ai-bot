@@ -155,3 +155,45 @@ export interface UpdateInfo {
   url: string;
   error?: string;
 }
+
+export interface ProxyStatus {
+  enabled: boolean;
+  mode: "manual" | "mullvad";
+  rotation: "off" | "per_request" | "per_n";
+  rotate_every: number;
+  apply_to_telegram: boolean;
+  pool_size: number;
+  active: string | null;
+  mullvad_country: string;
+  mullvad_count: number;
+}
+
+export interface ProxyPatch {
+  enabled?: boolean;
+  mode?: "manual" | "mullvad";
+  rotation?: "off" | "per_request" | "per_n";
+  rotate_every?: number;
+  apply_to_telegram?: boolean;
+  mullvad_country?: string;
+}
+
+export interface ManualProxy {
+  index: number;
+  masked: string;
+  scheme: string;
+  host: string;
+}
+
+export interface ProxyList {
+  manual: ManualProxy[];
+  mullvad_count: number;
+  mullvad_sample: string[];
+}
+
+export interface ProxyTestResult {
+  ok: boolean;
+  ip?: string;
+  country?: string;
+  mullvad_exit?: boolean;
+  error?: string;
+}

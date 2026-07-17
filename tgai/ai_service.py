@@ -19,6 +19,7 @@ import aiohttp
 from tgai import personas, providers
 from tgai.config import ConfigStore
 from tgai.personas import Identity
+from tgai.proxy import ProxyManager
 from tgai.ratelimit import ActivityFeed, AsyncRateLimiter
 
 logger = logging.getLogger(__name__)
@@ -113,13 +114,16 @@ class AIService:
         identity: Identity,
         histories_path: str = "histories.json",
         session_factory=aiohttp.ClientSession,
+        proxy: ProxyManager | None = None,
     ):
         self.cfg = cfg
         self.feed = feed
         self.identity = identity
         self.histories_path = histories_path
         self._session_factory = session_factory
-        self._session: aiohttp.ClientSession | None = None
+        self.proxy = proxy
+        # sessions cached per proxy url, "direct" for no proxy
+        self._sessions: dict[str, aiohttp.ClientSession] = {}
         self.limiter = AsyncRateLimiter(40)
         self.histories: dict[int, list[dict]] = {}
         self.stats = {
@@ -129,15 +133,25 @@ class AIService:
             "rate_limited": 0,
         }
 
-    def get_session(self) -> aiohttp.ClientSession:
-        if self._session is None or self._session.closed:
-            self._session = self._session_factory()
-        return self._session
+    def get_session(self, proxy=None) -> aiohttp.ClientSession:
+        """Session for the given proxy (or direct). One session cached per proxy."""
+        key = proxy.url if proxy else "direct"
+        s = self._sessions.get(key)
+        if s is None or s.closed:
+            if proxy is not None:
+                from aiohttp_socks import ProxyConnector
+
+                s = aiohttp.ClientSession(connector=ProxyConnector.from_url(proxy.url))
+            else:
+                s = self._session_factory()
+            self._sessions[key] = s
+        return s
 
     async def close(self) -> None:
-        if self._session and not self._session.closed:
-            await self._session.close()
-            self._session = None
+        for s in self._sessions.values():
+            if not s.closed:
+                await s.close()
+        self._sessions.clear()
 
     # history
 
@@ -217,7 +231,10 @@ class AIService:
         }
 
         self.stats["ai_calls"] += 1
-        session = self.get_session()
+        proxy = self.proxy.next_for_request() if self.proxy else None
+        if proxy is not None and self.proxy.took_new_proxy(proxy):
+            self.feed.push("info", f"routing through {proxy.masked()}")
+        session = self.get_session(proxy)
 
         self.limiter.set_rpm(providers.active_rpm(self.cfg))
         waited = await self.limiter.acquire()

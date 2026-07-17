@@ -9,6 +9,9 @@
 - new providers: willow (willowapi.digital) and opencode zen
 - live model discovery: fetch the model list from any openai compatible provider
 - update check against github releases, shown in settings
+- optional outbound proxy: manual socks5/http pool or mullvad exit nodes, with
+  rotation (off, per call, every n calls) and a connectivity test. can also route
+  the telegram connection
 - python package restructure into tgai/, pyproject packaging, scripts/qa.sh gate
 
 ## 2.0.0

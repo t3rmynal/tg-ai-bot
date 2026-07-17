@@ -4,6 +4,8 @@ pyproject.toml
 tests/test_api.py
 tests/test_core.py
 tests/test_models_fetch.py
+tests/test_proxy.py
+tests/test_updates.py
 tgai/__init__.py
 tgai/__main__.py
 tgai/ai_service.py
@@ -11,7 +13,9 @@ tgai/app.py
 tgai/config.py
 tgai/personas.py
 tgai/providers.py
+tgai/proxy.py
 tgai/ratelimit.py
+tgai/updates.py
 tgai.egg-info/PKG-INFO
 tgai.egg-info/SOURCES.txt
 tgai.egg-info/dependency_links.txt
@@ -23,6 +27,7 @@ tgai/api/deps.py
 tgai/api/routes_auth.py
 tgai/api/routes_chats.py
 tgai/api/routes_providers.py
+tgai/api/routes_proxy.py
 tgai/api/routes_runtime.py
 tgai/api/routes_settings.py
 tgai/api/schemas.py

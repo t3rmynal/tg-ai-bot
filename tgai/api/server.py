@@ -3,7 +3,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from tgai.api import routes_auth, routes_chats, routes_providers, routes_runtime, routes_settings
+from tgai.api import (
+    routes_auth,
+    routes_chats,
+    routes_providers,
+    routes_proxy,
+    routes_runtime,
+    routes_settings,
+)
 
 # tauri webview origins (macos/linux, windows) plus next dev in a browser
 CORS_ORIGINS = [
@@ -29,6 +36,7 @@ def create_app(state) -> FastAPI:
         routes_settings.router,
         routes_providers.router,
         routes_chats.router,
+        routes_proxy.router,
         routes_runtime.router,
     ):
         app.include_router(router, prefix="/api")

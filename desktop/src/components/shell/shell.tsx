@@ -6,6 +6,7 @@ import {
   Activity,
   MessageSquareText,
   Moon,
+  Network,
   Server,
   Settings2,
   Sun,
@@ -23,8 +24,9 @@ const NAV = [
   { href: "/providers/", label: "providers", icon: Server, n: "02" },
   { href: "/persona/", label: "persona", icon: UserRound, n: "03" },
   { href: "/chats/", label: "chats", icon: Users, n: "04" },
-  { href: "/settings/", label: "settings", icon: Settings2, n: "05" },
-  { href: "/test/", label: "test chat", icon: MessageSquareText, n: "06" },
+  { href: "/proxy/", label: "proxy", icon: Network, n: "05" },
+  { href: "/settings/", label: "settings", icon: Settings2, n: "06" },
+  { href: "/test/", label: "test chat", icon: MessageSquareText, n: "07" },
 ];
 
 export function Shell({ children }: { children: React.ReactNode }) {

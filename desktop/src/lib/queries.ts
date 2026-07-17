@@ -17,6 +17,10 @@ import type {
   Runtime,
   Settings,
   SettingsPatch,
+  ProxyList,
+  ProxyPatch,
+  ProxyStatus,
+  ProxyTestResult,
   TestChatReply,
   UpdateInfo,
 } from "./types";
@@ -274,4 +278,57 @@ export function useTestChat() {
     mutationFn: (body: { message: string; history: { role: string; content: string }[] }) =>
       api.post<TestChatReply>("/test-chat", body),
   });
+}
+
+// proxy
+
+export function useProxy() {
+  return useQuery({
+    queryKey: ["proxy"],
+    queryFn: () => api.get<ProxyStatus>("/proxy"),
+  });
+}
+
+export function useProxyList() {
+  return useQuery({
+    queryKey: ["proxy-list"],
+    queryFn: () => api.get<ProxyList>("/proxy/list"),
+  });
+}
+
+function useProxyMutation<TArgs, TResult>(fn: (args: TArgs) => Promise<TResult>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["proxy"] });
+      qc.invalidateQueries({ queryKey: ["proxy-list"] });
+    },
+  });
+}
+
+export function usePatchProxy() {
+  return useProxyMutation((patch: ProxyPatch) => api.patch<ProxyStatus>("/proxy", patch));
+}
+
+export function useAddManualProxy() {
+  return useProxyMutation((url: string) => api.post<ProxyStatus>("/proxy/manual", { url }));
+}
+
+export function useRemoveManualProxy() {
+  return useProxyMutation((index: number) => api.del<ProxyStatus>(`/proxy/manual?index=${index}`));
+}
+
+export function useRefreshMullvad() {
+  return useProxyMutation((country: string) =>
+    api.post<{ count: number; country: string }>("/proxy/mullvad/refresh", { country }),
+  );
+}
+
+export function useRotateProxy() {
+  return useProxyMutation(() => api.post<{ active: string | null }>("/proxy/rotate"));
+}
+
+export function testProxy(url: string) {
+  return api.post<ProxyTestResult>("/proxy/test", { url });
 }
