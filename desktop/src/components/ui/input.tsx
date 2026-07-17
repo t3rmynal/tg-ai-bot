@@ -16,7 +16,13 @@ export const Textarea = forwardRef<
   HTMLTextAreaElement,
   TextareaHTMLAttributes<HTMLTextAreaElement>
 >(function Textarea({ className = "", ...props }, ref) {
-  return <textarea ref={ref} className={`${base} py-2.5 leading-relaxed ${className}`} {...props} />;
+  return (
+    <textarea
+      ref={ref}
+      className={`${base} resize-y py-2.5 leading-relaxed ${className}`}
+      {...props}
+    />
+  );
 });
 
 export function Field({

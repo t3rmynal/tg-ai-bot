@@ -50,7 +50,7 @@ export default function TestChatPage() {
 
   return (
     <div className="mx-auto flex h-[calc(100vh-140px)] max-w-3xl flex-col">
-      <PageHeader eyebrow="try the persona offline" title="test chat" />
+      <PageHeader eyebrow="try the persona offline" title="test chat" index="07" />
       <Card
         title={`testing ${runtime.data?.persona ?? "..."} on ${runtime.data?.model ?? "..."}`}
         actions={
@@ -71,7 +71,7 @@ export default function TestChatPage() {
                 key={i}
                 className={`max-w-[80%] rounded-md px-3 py-2 text-sm leading-relaxed ${
                   b.role === "user"
-                    ? "self-end bg-accent-dim text-text-1"
+                    ? "self-end border border-accent/25 bg-accent-dim text-text-1"
                     : "self-start border border-line-1 bg-bg-2 text-text-1"
                 }`}
               >

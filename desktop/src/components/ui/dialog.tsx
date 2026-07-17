@@ -25,7 +25,7 @@ export function Dialog({
             -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border border-line-2
             bg-bg-1 p-6 shadow-2xl ${wide ? "max-w-xl" : "max-w-md"}`}
         >
-          <div className="mb-5 flex items-center justify-between">
+          <div className="mb-3 flex items-center justify-between">
             <RadixDialog.Title className="display text-lg text-text-1">{title}</RadixDialog.Title>
             <RadixDialog.Close asChild>
               <button
@@ -37,6 +37,7 @@ export function Dialog({
               </button>
             </RadixDialog.Close>
           </div>
+          <div className="notch-rule animate-sweep mb-5" />
           {children}
         </RadixDialog.Content>
       </RadixDialog.Portal>

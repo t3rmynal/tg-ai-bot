@@ -36,7 +36,7 @@ export default function ChatsPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <PageHeader eyebrow="where the bot answers" title="chats" />
+      <PageHeader eyebrow="where the bot answers" title="chats" index="04" />
       <div className="flex flex-col gap-4">
       <Card title="when to reply">
         <div className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
@@ -134,7 +134,7 @@ function ChatListCard({
     >
       <p className="mb-2 text-xs text-text-3">{hint}</p>
       {ids.length === 0 ? (
-        <EmptyState text="empty" />
+        <EmptyState text={`no chats in the ${title} yet. add one with the plus above.`} />
       ) : (
         <ul className="-my-1 flex flex-col">
           {ids.map((id) => (
@@ -150,7 +150,7 @@ function ChatListCard({
                 {titles.has(id) ? <span className="mono text-xs text-text-3">{id}</span> : null}
                 <button
                   aria-label={`remove ${id}`}
-                  className="rounded-sm p-1 text-text-3 opacity-0 transition-all duration-120
+                  className="rounded-sm p-1 text-text-3 opacity-0 transition-all duration-150
                     group-hover:opacity-100 hover:bg-bg-3 hover:text-danger"
                   onClick={() =>
                     remove.mutate({ list, chatId: id }, { onError: (e) => toast(e.message, "danger") })
@@ -238,7 +238,7 @@ function DialogPicker({
                   <li key={d.id} className="border-b border-line-1 last:border-b-0">
                     <button
                       className="flex w-full items-center gap-2.5 px-3 py-1.5 text-left text-sm
-                        text-text-2 transition-colors duration-120 hover:bg-bg-3 hover:text-text-1"
+                        text-text-2 transition-colors duration-150 hover:bg-bg-3 hover:text-text-1"
                       onClick={() => addId(d.id)}
                     >
                       <Icon size={14} strokeWidth={1.5} className="shrink-0 text-text-3" />

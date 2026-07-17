@@ -18,6 +18,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, EmptyState, PageHeader } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
+import { Segmented } from "@/components/ui/segmented";
 import { Spinner } from "@/components/ui/spinner";
 import { ToggleRow } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
@@ -54,9 +55,12 @@ export default function ProxyPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <PageHeader eyebrow="outbound routing" title="proxy">
-        <Badge tone={p?.enabled ? "accent" : "neutral"}>{p?.enabled ? "on" : "off"}</Badge>
-      </PageHeader>
+      <PageHeader
+        eyebrow="outbound routing"
+        title="proxy"
+        index="05"
+        status={<Badge tone={p?.enabled ? "accent" : "neutral"}>{p?.enabled ? "on" : "off"}</Badge>}
+      />
 
       <div className="flex flex-col gap-4">
         <Card title="routing">
@@ -77,36 +81,21 @@ export default function ProxyPage() {
 
           <div className="mt-4 grid grid-cols-2 gap-4">
             <Field label="source">
-              <div className="flex h-9 items-center gap-1 rounded-sm border border-line-2 p-0.5">
-                {(["manual", "mullvad"] as const).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setPatch({ mode: m })}
-                    className={`h-full flex-1 rounded-sm text-xs transition-colors duration-150 ${
-                      p?.mode === m ? "bg-accent-dim text-accent" : "text-text-3 hover:text-text-1"
-                    }`}
-                  >
-                    {m}
-                  </button>
-                ))}
-              </div>
+              <Segmented
+                options={[
+                  { value: "manual", label: "manual" },
+                  { value: "mullvad", label: "mullvad" },
+                ]}
+                value={p?.mode}
+                onChange={(m) => setPatch({ mode: m })}
+              />
             </Field>
             <Field label="rotation">
-              <div className="flex h-9 items-center gap-1 rounded-sm border border-line-2 p-0.5">
-                {ROTATIONS.map((r) => (
-                  <button
-                    key={r.value}
-                    onClick={() => setPatch({ rotation: r.value })}
-                    className={`h-full flex-1 rounded-sm px-1 text-xs transition-colors duration-150 ${
-                      p?.rotation === r.value
-                        ? "bg-accent-dim text-accent"
-                        : "text-text-3 hover:text-text-1"
-                    }`}
-                  >
-                    {r.label}
-                  </button>
-                ))}
-              </div>
+              <Segmented
+                options={ROTATIONS.map((r) => ({ value: r.value, label: r.label }))}
+                value={p?.rotation}
+                onChange={(rotation) => setPatch({ rotation })}
+              />
             </Field>
           </div>
 
@@ -206,14 +195,16 @@ function ManualCard() {
         }}
         className="flex items-end gap-2"
       >
-        <Field label="add a proxy">
-          <Input
-            className="mono"
-            placeholder="socks5://user:pass@host:1080"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-          />
-        </Field>
+        <div className="min-w-0 flex-1">
+          <Field label="add a proxy">
+            <Input
+              className="mono"
+              placeholder="socks5://user:pass@host:1080"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+          </Field>
+        </div>
         <Button type="submit" disabled={!url.trim() || add.isPending}>
           <Plus size={13} strokeWidth={1.5} /> add
         </Button>
@@ -262,7 +253,7 @@ function MullvadCard({ status }: { status: ProxyStatus }) {
         different mullvad server while the tunnel is up.
       </p>
       <div className="flex items-end gap-2">
-        <Field label="country code (blank for all)" hint="two letters, like se or us">
+        <Field label="country code, two letters, blank for all">
           <Input
             className="mono w-40"
             maxLength={2}

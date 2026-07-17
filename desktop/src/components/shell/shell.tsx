@@ -43,7 +43,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
     <div className="flex min-h-screen">
       <aside className="fixed inset-y-0 left-0 flex w-[220px] flex-col border-r border-line-1 bg-bg-1">
         <div
-          className="bevel flex h-14 items-center gap-2.5 border-b border-line-1 px-5"
+          className="bevel flex h-14 items-center gap-2.5 border-b border-line-1 bg-bg-1 px-5"
           data-tauri-drag-region
         >
           <span
@@ -141,7 +141,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
             </div>
           </div>
         </header>
-        <main key={pathname} className="animate-fade flex-1 p-6">
+        <main key={pathname} className="grid-bg animate-fade flex-1 p-6">
           {children}
         </main>
       </div>

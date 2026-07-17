@@ -25,43 +25,44 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* light is the default, dark via media query, both overridable with data-theme */
+/* light is the default, dark via media query, both overridable with data-theme.
+   light: tinted cool page, white raised panels. dark: near-black page, lifted panels. */
 :root {
-  --bg-0: #ffffff;
-  --bg-1: #f7f9fc;
-  --bg-2: #ffffff;
-  --bg-3: #eef2f7;
-  --line-1: #e6ebf2;
-  --line-2: #d2dbe6;
+  --bg-0: #edf1f7;
+  --bg-1: #ffffff;
+  --bg-2: #f5f8fb;
+  --bg-3: #e7edf4;
+  --line-1: #dde4ee;
+  --line-2: #c7d2e0;
   --line-glow: rgba(10, 132, 255, 0.28);
   --text-1: #0a1119;
-  --text-2: #46576b;
-  --text-3: #8496a8;
+  --text-2: #42536a;
+  --text-3: #5d7085;
   --accent: #0a84ff;
   --accent-2: #4db5ff;
   --accent-dim: rgba(10, 132, 255, 0.1);
   --accent-fg: #ffffff;
-  --warn: #b7791f;
-  --warn-dim: rgba(183, 121, 31, 0.12);
-  --danger: #d64550;
-  --danger-dim: rgba(214, 69, 80, 0.1);
-  --grid-line: rgba(10, 132, 255, 0.05);
+  --warn: #a86c15;
+  --warn-dim: rgba(168, 108, 21, 0.12);
+  --danger: #c93a46;
+  --danger-dim: rgba(201, 58, 70, 0.1);
+  --grid-line: rgba(10, 132, 255, 0.055);
   --hero-grad: linear-gradient(118deg, #0a84ff 0%, #3aa0ff 48%, #6fc5ff 100%);
   --focus-ring: 0 0 0 2px rgba(10, 132, 255, 0.4);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg-0: #080b10;
-    --bg-1: #0c1017;
-    --bg-2: #11161f;
-    --bg-3: #19212c;
-    --line-1: #1b2431;
-    --line-2: #2a3644;
+    --bg-0: #070a0f;
+    --bg-1: #0d121a;
+    --bg-2: #121826;
+    --bg-3: #1a2231;
+    --line-1: #1d2634;
+    --line-2: #2c3849;
     --line-glow: rgba(62, 160, 255, 0.32);
     --text-1: #eaf0f7;
     --text-2: #93a3b5;
-    --text-3: #566577;
+    --text-3: #64758a;
     --accent: #3ea0ff;
     --accent-2: #6bc1ff;
     --accent-dim: rgba(62, 160, 255, 0.12);
@@ -77,40 +78,40 @@
 }
 
 :root[data-theme="light"] {
-  --bg-0: #ffffff;
-  --bg-1: #f7f9fc;
-  --bg-2: #ffffff;
-  --bg-3: #eef2f7;
-  --line-1: #e6ebf2;
-  --line-2: #d2dbe6;
+  --bg-0: #edf1f7;
+  --bg-1: #ffffff;
+  --bg-2: #f5f8fb;
+  --bg-3: #e7edf4;
+  --line-1: #dde4ee;
+  --line-2: #c7d2e0;
   --line-glow: rgba(10, 132, 255, 0.28);
   --text-1: #0a1119;
-  --text-2: #46576b;
-  --text-3: #8496a8;
+  --text-2: #42536a;
+  --text-3: #5d7085;
   --accent: #0a84ff;
   --accent-2: #4db5ff;
   --accent-dim: rgba(10, 132, 255, 0.1);
   --accent-fg: #ffffff;
-  --warn: #b7791f;
-  --warn-dim: rgba(183, 121, 31, 0.12);
-  --danger: #d64550;
-  --danger-dim: rgba(214, 69, 80, 0.1);
-  --grid-line: rgba(10, 132, 255, 0.05);
+  --warn: #a86c15;
+  --warn-dim: rgba(168, 108, 21, 0.12);
+  --danger: #c93a46;
+  --danger-dim: rgba(201, 58, 70, 0.1);
+  --grid-line: rgba(10, 132, 255, 0.055);
   --hero-grad: linear-gradient(118deg, #0a84ff 0%, #3aa0ff 48%, #6fc5ff 100%);
   --focus-ring: 0 0 0 2px rgba(10, 132, 255, 0.4);
 }
 
 :root[data-theme="dark"] {
-  --bg-0: #080b10;
-  --bg-1: #0c1017;
-  --bg-2: #11161f;
-  --bg-3: #19212c;
-  --line-1: #1b2431;
-  --line-2: #2a3644;
+  --bg-0: #070a0f;
+  --bg-1: #0d121a;
+  --bg-2: #121826;
+  --bg-3: #1a2231;
+  --line-1: #1d2634;
+  --line-2: #2c3849;
   --line-glow: rgba(62, 160, 255, 0.32);
   --text-1: #eaf0f7;
   --text-2: #93a3b5;
-  --text-3: #566577;
+  --text-3: #64758a;
   --accent: #3ea0ff;
   --accent-2: #6bc1ff;
   --accent-dim: rgba(62, 160, 255, 0.12);
@@ -200,6 +201,28 @@ body {
 
 .bevel-lg {
   clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+}
+
+/* small cut for solid-fill controls (primary buttons) */
+.bevel-sm {
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+}
+
+/* outlined index digits in the page masthead, blueprint style */
+.ghost-num {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: transparent;
+  -webkit-text-stroke: 1.2px var(--line-2);
+  user-select: none;
+}
+
+/* form fields flag errors through aria-invalid instead of one-off classes */
+input[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  color: var(--danger);
+  border-color: color-mix(in oklab, var(--danger) 45%, transparent);
 }
 
 /* thin accent rule with a diagonal notch dropping from the left */

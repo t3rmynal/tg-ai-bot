@@ -16,13 +16,14 @@ export function Switch({
       checked={checked}
       onCheckedChange={onCheckedChange}
       disabled={disabled}
-      className="relative h-5 w-9 shrink-0 cursor-pointer rounded-full bg-bg-3 transition-colors
-        duration-150 disabled:opacity-40 data-[state=checked]:bg-accent"
+      className="inline-flex h-5 w-9 shrink-0 cursor-pointer items-center rounded-full border
+        border-line-2 bg-bg-3 transition-colors duration-150 disabled:opacity-40
+        data-[state=checked]:border-accent data-[state=checked]:bg-accent"
     >
       <RadixSwitch.Thumb
-        className="block size-4 translate-x-0.5 rounded-full bg-text-1 transition-transform
-          duration-150 will-change-transform data-[state=checked]:translate-x-[18px]
-          data-[state=checked]:bg-accent-fg"
+        className="block size-3.5 translate-x-[2px] rounded-full bg-white
+          shadow-[0_1px_2px_rgba(2,8,20,0.35)] transition-transform duration-150
+          will-change-transform data-[state=checked]:translate-x-[18px]"
       />
     </RadixSwitch.Root>
   );

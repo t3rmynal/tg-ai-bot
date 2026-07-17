@@ -37,7 +37,7 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <PageHeader eyebrow="tuning and account" title="settings" />
+      <PageHeader eyebrow="tuning and account" title="settings" index="06" />
       <div className="flex flex-col gap-4">
       <Card title="reply behavior">
         <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">

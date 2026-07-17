@@ -34,9 +34,18 @@ export default function DashboardPage() {
 
   return (
     <div className="mx-auto flex max-w-4xl flex-col">
-      <PageHeader eyebrow="overview" title="dashboard" />
+      <PageHeader eyebrow="overview" title="dashboard" index="01" />
 
       <div className="flex flex-col gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {tiles.map((t) => (
+            <div key={t.label} className="bevel rounded-md border border-line-1 bg-bg-1 px-4 py-3.5">
+              <p className="label">{t.label}</p>
+              <p className="display mt-1.5 text-2xl leading-none text-text-1">{t.value ?? "..."}</p>
+            </div>
+          ))}
+        </div>
+
         <Card title="at a glance">
           <dl className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm sm:grid-cols-3">
             <GlanceItem
@@ -68,15 +77,6 @@ export default function DashboardPage() {
             />
           </dl>
         </Card>
-
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
-          {tiles.map((t) => (
-            <div key={t.label} className="bevel rounded-md border border-line-1 bg-bg-1 px-4 py-3.5">
-              <p className="display text-2xl text-text-1">{t.value ?? "..."}</p>
-              <p className="label mt-1">{t.label}</p>
-            </div>
-          ))}
-        </div>
 
         <Card title="activity">
           <ActivityFeed events={events} />

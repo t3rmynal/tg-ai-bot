@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, PageHeader } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Textarea } from "@/components/ui/input";
+import { Segmented } from "@/components/ui/segmented";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/toast";
 
@@ -36,26 +37,22 @@ export default function PersonaPage() {
 
   return (
     <div className="mx-auto max-w-4xl">
-      <PageHeader eyebrow="voice and prompt" title="persona" />
+      <PageHeader eyebrow="voice and prompt" title="persona" index="03" />
       <div className="flex flex-col gap-4">
       <Card
-        title="persona"
+        title="presets"
         actions={
-          <div className="flex items-center gap-1 rounded-md border border-line-2 p-0.5">
-            {(["en", "ru"] as const).map((lang) => (
-              <button
-                key={lang}
-                onClick={() =>
-                  patch.mutate({ language: lang }, { onError: (e) => toast(e.message, "danger") })
-                }
-                className={`rounded-sm px-2 py-0.5 text-xs transition-colors duration-120 ${
-                  language === lang ? "bg-accent-dim text-accent" : "text-text-3 hover:text-text-1"
-                }`}
-              >
-                {lang}
-              </button>
-            ))}
-          </div>
+          <Segmented
+            size="sm"
+            options={[
+              { value: "en", label: "en" },
+              { value: "ru", label: "ru" },
+            ]}
+            value={language}
+            onChange={(lang) =>
+              patch.mutate({ language: lang }, { onError: (e) => toast(e.message, "danger") })
+            }
+          />
         }
       >
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
@@ -66,7 +63,7 @@ export default function PersonaPage() {
                 key={p.key}
                 onClick={() => pick(p.key)}
                 className={`flex flex-col items-start gap-1.5 rounded-md border p-3 text-left
-                  transition-colors duration-120 ${
+                  transition-colors duration-150 ${
                     active
                       ? "border-accent/40 bg-accent-dim"
                       : "border-line-1 bg-bg-2 hover:border-line-2 hover:bg-bg-3"
@@ -241,25 +238,14 @@ function GeneratorBody({
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="the bot" />
             </Field>
             <Field label="acts as">
-              <div className="flex h-8 items-center gap-1 rounded-md border border-line-2 p-0.5">
-                {(
-                  [
-                    ["human", "a real person"],
-                    ["bot", "an honest ai"],
-                  ] as const
-                ).map(([value, label]) => (
-                  <button
-                    key={value}
-                    type="button"
-                    onClick={() => setKind(value)}
-                    className={`h-full flex-1 rounded-sm text-xs transition-colors duration-120 ${
-                      kind === value ? "bg-accent-dim text-accent" : "text-text-3 hover:text-text-1"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              <Segmented
+                options={[
+                  { value: "human", label: "a real person" },
+                  { value: "bot", label: "an honest ai" },
+                ]}
+                value={kind}
+                onChange={setKind}
+              />
             </Field>
           </div>
           <Field label="tone and personality">

@@ -36,10 +36,10 @@ export default function ProvidersPage() {
 
   return (
     <div className="mx-auto max-w-5xl">
-      <PageHeader eyebrow="models and keys" title="providers" />
+      <PageHeader eyebrow="models and keys" title="providers" index="02" />
       <div className="grid grid-cols-[240px_1fr] items-start gap-4">
       <Card
-        title="providers"
+        title="catalog"
         actions={
           <Button size="sm" variant="ghost" onClick={() => setAddOpen(true)} aria-label="add provider">
             <Plus size={14} strokeWidth={1.5} />
@@ -55,7 +55,7 @@ export default function ProvidersPage() {
                 <button
                   onClick={() => setSelected(p.name)}
                   className={`relative flex w-full items-center justify-between gap-2 rounded-md
-                    px-2.5 py-2 text-left text-sm transition-colors duration-120 ${
+                    px-2.5 py-2 text-left text-sm transition-colors duration-150 ${
                       isSelected ? "bg-accent-dim text-text-1" : "text-text-2 hover:bg-bg-3"
                     }`}
                 >
@@ -166,6 +166,7 @@ function ProviderDetail({
             <div className="flex items-center gap-2">
               <Input
                 readOnly
+                aria-invalid={!provider.key_set && provider.needs_key}
                 value={
                   provider.key_set
                     ? provider.api_key_masked
@@ -173,7 +174,7 @@ function ProviderDetail({
                       ? "no key set"
                       : "not needed"
                 }
-                className={`mono ${provider.key_set || !provider.needs_key ? "" : "text-danger"}`}
+                className="mono"
               />
               <Button size="sm" onClick={() => setKeyOpen(true)}>
                 set
@@ -240,7 +241,7 @@ function ProviderDetail({
                 >
                   <button
                     className={`mono min-w-0 flex-1 truncate text-left text-sm transition-colors
-                      duration-120 ${
+                      duration-150 ${
                         isActiveModel ? "text-accent" : "text-text-2 hover:text-text-1"
                       }`}
                     title={isActiveModel ? "active model" : "make active"}
@@ -256,7 +257,7 @@ function ProviderDetail({
                   </button>
                   <button
                     aria-label={`remove ${m}`}
-                    className="rounded-sm p-1 text-text-3 opacity-0 transition-all duration-120
+                    className="rounded-sm p-1 text-text-3 opacity-0 transition-all duration-150
                       group-hover:opacity-100 hover:bg-bg-3 hover:text-danger"
                     onClick={() =>
                       removeModel.mutate(
@@ -463,7 +464,7 @@ function ModelPickerBody({
                   <li key={m} className="border-b border-line-1 last:border-b-0">
                     <button
                       className="mono flex w-full items-center justify-between px-3 py-1.5
-                        text-left text-xs text-text-2 transition-colors duration-120
+                        text-left text-xs text-text-2 transition-colors duration-150
                         hover:bg-bg-3 hover:text-text-1"
                       onClick={() => onAdd(m)}
                     >

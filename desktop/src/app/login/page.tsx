@@ -50,7 +50,7 @@ export default function LoginPage() {
               <div className="mt-6 flex flex-col items-center gap-4">
                 <QrPanel url={qr?.url} />
                 {qr?.expires_at ? <QrCountdown expiresAt={qr.expires_at} /> : null}
-                <p className="mono text-xs text-text-3">the code refreshes itself about every 30s</p>
+                <p className="mono text-xs text-text-3">the code refreshes every 30s</p>
               </div>
             </>
           )}
@@ -62,7 +62,8 @@ export default function LoginPage() {
 
 function QrPanel({ url }: { url?: string }) {
   const { resolved } = useTheme();
-  const bg = resolved === "dark" ? "#11161f" : "#ffffff";
+  // mirrors --bg-2 and --text-1, the svg needs literal colors
+  const bg = resolved === "dark" ? "#121826" : "#ffffff";
   const fg = resolved === "dark" ? "#eaf0f7" : "#0a1119";
   return (
     <div className="rounded-md border border-line-1 bg-bg-2 p-4">
