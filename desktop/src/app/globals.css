@@ -1,0 +1,85 @@
+@import "tailwindcss";
+
+/* locked design tokens, see AGENTS.md design section before touching */
+@theme {
+  --color-bg-0: #0b0e14;
+  --color-bg-1: #10141c;
+  --color-bg-2: #151a24;
+  --color-bg-3: #1b2130;
+  --color-line-1: #1c2330;
+  --color-line-2: #28303f;
+  --color-line-glow: rgba(140, 169, 204, 0.22);
+  --color-text-1: #e8edf4;
+  --color-text-2: #9aa7b8;
+  --color-text-3: #5d6a7d;
+  --color-accent: #8ca9cc;
+  --color-accent-dim: rgba(140, 169, 204, 0.12);
+  --color-ok: #3ecf6e;
+  --color-ok-dim: rgba(62, 207, 110, 0.12);
+  --color-warn: #c9a05f;
+  --color-warn-dim: rgba(201, 160, 95, 0.12);
+  --color-danger: #c56a73;
+  --color-danger-dim: rgba(197, 106, 115, 0.12);
+
+  --font-sans: "IBM Plex Sans Variable", "IBM Plex Sans", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  --text-xs: 12px;
+  --text-sm: 13px;
+  --text-base: 14px;
+  --text-lg: 16px;
+  --text-xl: 20px;
+  --text-2xl: 26px;
+}
+
+html,
+body {
+  height: 100%;
+  background: var(--color-bg-0);
+  color: var(--color-text-1);
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* form labels: small, quiet, lowercase */
+.label {
+  font-size: var(--text-xs);
+  color: var(--color-text-2);
+  letter-spacing: 0.04em;
+  text-transform: lowercase;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+*:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(140, 169, 204, 0.4);
+}
+
+::selection {
+  background: rgba(140, 169, 204, 0.25);
+}
+
+/* thin scrollbars that match the surface */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line-2) transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

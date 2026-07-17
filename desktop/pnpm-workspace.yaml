@@ -1,0 +1,4 @@
+# sharp is unused at runtime (images are unoptimized in static export)
+allowBuilds:
+  sharp: false
+  unrs-resolver: true
