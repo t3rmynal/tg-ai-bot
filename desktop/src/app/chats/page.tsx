@@ -14,7 +14,7 @@ import {
 import { isChatId } from "@/lib/format";
 import type { Dialog as TgDialog } from "@/lib/types";
 import { Button } from "@/components/ui/button";
-import { Card, EmptyState } from "@/components/ui/card";
+import { Card, EmptyState, PageHeader } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
@@ -35,7 +35,9 @@ export default function ChatsPage() {
     patch.mutate({ behavior: { [key]: value } }, { onError: (e) => toast(e.message, "danger") });
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-4">
+    <div className="mx-auto max-w-4xl">
+      <PageHeader eyebrow="where the bot answers" title="chats" />
+      <div className="flex flex-col gap-4">
       <Card title="when to reply">
         <div className="grid grid-cols-1 gap-x-8 sm:grid-cols-2">
           <ToggleRow
@@ -93,6 +95,7 @@ export default function ChatsPage() {
         onClose={() => setPicker(null)}
         taken={new Set([...(chats.data?.whitelist ?? []), ...(chats.data?.blacklist ?? [])])}
       />
+      </div>
     </div>
   );
 }

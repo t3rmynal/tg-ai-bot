@@ -11,7 +11,7 @@ import {
 } from "@/lib/queries";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, PageHeader } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input, Textarea } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
@@ -35,7 +35,9 @@ export default function PersonaPage() {
     patch.mutate({ persona: key }, { onError: (e) => toast(e.message, "danger") });
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-4">
+    <div className="mx-auto max-w-4xl">
+      <PageHeader eyebrow="voice and prompt" title="persona" />
+      <div className="flex flex-col gap-4">
       <Card
         title="persona"
         actions={
@@ -156,6 +158,7 @@ export default function PersonaPage() {
           );
         }}
       />
+      </div>
     </div>
   );
 }

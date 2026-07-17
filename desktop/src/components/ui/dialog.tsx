@@ -19,20 +19,18 @@ export function Dialog({
   return (
     <RadixDialog.Root open={open} onOpenChange={onOpenChange}>
       <RadixDialog.Portal>
-        <RadixDialog.Overlay className="fixed inset-0 z-40 bg-bg-0/70 backdrop-blur-[2px]" />
+        <RadixDialog.Overlay className="animate-fade fixed inset-0 z-40 bg-bg-0/75 backdrop-blur-[2px]" />
         <RadixDialog.Content
-          className={`fixed top-1/2 left-1/2 z-50 max-h-[85vh] w-full -translate-x-1/2
-            -translate-y-1/2 overflow-y-auto rounded-lg border border-line-2 bg-bg-1 p-5
-            shadow-2xl duration-200 ${wide ? "max-w-xl" : "max-w-md"}`}
+          className={`bevel animate-rise fixed top-1/2 left-1/2 z-50 max-h-[85vh] w-full
+            -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-lg border border-line-2
+            bg-bg-1 p-6 shadow-2xl ${wide ? "max-w-xl" : "max-w-md"}`}
         >
-          <div className="mb-4 flex items-center justify-between">
-            <RadixDialog.Title className="text-lg font-medium text-text-1">
-              {title}
-            </RadixDialog.Title>
+          <div className="mb-5 flex items-center justify-between">
+            <RadixDialog.Title className="display text-lg text-text-1">{title}</RadixDialog.Title>
             <RadixDialog.Close asChild>
               <button
                 aria-label="close"
-                className="rounded-sm p-1 text-text-3 transition-colors duration-120
+                className="rounded-sm p-1 text-text-3 transition-colors duration-150
                   hover:bg-bg-3 hover:text-text-1"
               >
                 <X size={16} strokeWidth={1.5} />

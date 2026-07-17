@@ -1,57 +1,191 @@
 @import "tailwindcss";
 
-/* locked design tokens, see AGENTS.md design section before touching */
-@theme {
-  --color-bg-0: #0b0e14;
-  --color-bg-1: #10141c;
-  --color-bg-2: #151a24;
-  --color-bg-3: #1b2130;
-  --color-line-1: #1c2330;
-  --color-line-2: #28303f;
-  --color-line-glow: rgba(140, 169, 204, 0.22);
-  --color-text-1: #e8edf4;
-  --color-text-2: #9aa7b8;
-  --color-text-3: #5d6a7d;
-  --color-accent: #8ca9cc;
-  --color-accent-dim: rgba(140, 169, 204, 0.12);
-  --color-ok: #3ecf6e;
-  --color-ok-dim: rgba(62, 207, 110, 0.12);
-  --color-warn: #c9a05f;
-  --color-warn-dim: rgba(201, 160, 95, 0.12);
-  --color-danger: #c56a73;
-  --color-danger-dim: rgba(197, 106, 115, 0.12);
+/* design language: operation-zero inspired. electric blue accent, beveled
+   corners, thin rules with a diagonal notch, mono data, heavy uppercase
+   display. light and dark follow the system, a toggle can override. see the
+   AGENTS.md design section before changing tokens. */
 
+@theme {
+  --font-display: "Space Grotesk Variable", "Space Grotesk", system-ui, sans-serif;
   --font-sans: "IBM Plex Sans Variable", "IBM Plex Sans", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, monospace;
 
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 10px;
+  --radius-sm: 3px;
+  --radius-md: 5px;
+  --radius-lg: 8px;
 
   --text-xs: 12px;
   --text-sm: 13px;
   --text-base: 14px;
   --text-lg: 16px;
-  --text-xl: 20px;
-  --text-2xl: 26px;
+  --text-xl: 22px;
+  --text-2xl: 30px;
+  --text-3xl: 44px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* light is the default, dark via media query, both overridable with data-theme */
+:root {
+  --bg-0: #ffffff;
+  --bg-1: #f7f9fc;
+  --bg-2: #ffffff;
+  --bg-3: #eef2f7;
+  --line-1: #e6ebf2;
+  --line-2: #d2dbe6;
+  --line-glow: rgba(10, 132, 255, 0.28);
+  --text-1: #0a1119;
+  --text-2: #46576b;
+  --text-3: #8496a8;
+  --accent: #0a84ff;
+  --accent-2: #4db5ff;
+  --accent-dim: rgba(10, 132, 255, 0.1);
+  --accent-fg: #ffffff;
+  --warn: #b7791f;
+  --warn-dim: rgba(183, 121, 31, 0.12);
+  --danger: #d64550;
+  --danger-dim: rgba(214, 69, 80, 0.1);
+  --grid-line: rgba(10, 132, 255, 0.05);
+  --hero-grad: linear-gradient(118deg, #0a84ff 0%, #3aa0ff 48%, #6fc5ff 100%);
+  --focus-ring: 0 0 0 2px rgba(10, 132, 255, 0.4);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-0: #080b10;
+    --bg-1: #0c1017;
+    --bg-2: #11161f;
+    --bg-3: #19212c;
+    --line-1: #1b2431;
+    --line-2: #2a3644;
+    --line-glow: rgba(62, 160, 255, 0.32);
+    --text-1: #eaf0f7;
+    --text-2: #93a3b5;
+    --text-3: #566577;
+    --accent: #3ea0ff;
+    --accent-2: #6bc1ff;
+    --accent-dim: rgba(62, 160, 255, 0.12);
+    --accent-fg: #05080d;
+    --warn: #d0a24a;
+    --warn-dim: rgba(208, 162, 74, 0.12);
+    --danger: #d97078;
+    --danger-dim: rgba(217, 112, 120, 0.12);
+    --grid-line: rgba(62, 160, 255, 0.05);
+    --hero-grad: linear-gradient(118deg, #0b3d78 0%, #1160b0 45%, #2f9bff 100%);
+    --focus-ring: 0 0 0 2px rgba(62, 160, 255, 0.45);
+  }
+}
+
+:root[data-theme="light"] {
+  --bg-0: #ffffff;
+  --bg-1: #f7f9fc;
+  --bg-2: #ffffff;
+  --bg-3: #eef2f7;
+  --line-1: #e6ebf2;
+  --line-2: #d2dbe6;
+  --line-glow: rgba(10, 132, 255, 0.28);
+  --text-1: #0a1119;
+  --text-2: #46576b;
+  --text-3: #8496a8;
+  --accent: #0a84ff;
+  --accent-2: #4db5ff;
+  --accent-dim: rgba(10, 132, 255, 0.1);
+  --accent-fg: #ffffff;
+  --warn: #b7791f;
+  --warn-dim: rgba(183, 121, 31, 0.12);
+  --danger: #d64550;
+  --danger-dim: rgba(214, 69, 80, 0.1);
+  --grid-line: rgba(10, 132, 255, 0.05);
+  --hero-grad: linear-gradient(118deg, #0a84ff 0%, #3aa0ff 48%, #6fc5ff 100%);
+  --focus-ring: 0 0 0 2px rgba(10, 132, 255, 0.4);
+}
+
+:root[data-theme="dark"] {
+  --bg-0: #080b10;
+  --bg-1: #0c1017;
+  --bg-2: #11161f;
+  --bg-3: #19212c;
+  --line-1: #1b2431;
+  --line-2: #2a3644;
+  --line-glow: rgba(62, 160, 255, 0.32);
+  --text-1: #eaf0f7;
+  --text-2: #93a3b5;
+  --text-3: #566577;
+  --accent: #3ea0ff;
+  --accent-2: #6bc1ff;
+  --accent-dim: rgba(62, 160, 255, 0.12);
+  --accent-fg: #05080d;
+  --warn: #d0a24a;
+  --warn-dim: rgba(208, 162, 74, 0.12);
+  --danger: #d97078;
+  --danger-dim: rgba(217, 112, 120, 0.12);
+  --grid-line: rgba(62, 160, 255, 0.05);
+  --hero-grad: linear-gradient(118deg, #0b3d78 0%, #1160b0 45%, #2f9bff 100%);
+  --focus-ring: 0 0 0 2px rgba(62, 160, 255, 0.45);
+}
+
+/* map tokens into tailwind color utilities */
+@theme inline {
+  --color-bg-0: var(--bg-0);
+  --color-bg-1: var(--bg-1);
+  --color-bg-2: var(--bg-2);
+  --color-bg-3: var(--bg-3);
+  --color-line-1: var(--line-1);
+  --color-line-2: var(--line-2);
+  --color-line-glow: var(--line-glow);
+  --color-text-1: var(--text-1);
+  --color-text-2: var(--text-2);
+  --color-text-3: var(--text-3);
+  --color-accent: var(--accent);
+  --color-accent-2: var(--accent-2);
+  --color-accent-dim: var(--accent-dim);
+  --color-accent-fg: var(--accent-fg);
+  --color-warn: var(--warn);
+  --color-warn-dim: var(--warn-dim);
+  --color-danger: var(--danger);
+  --color-danger-dim: var(--danger-dim);
 }
 
 html,
 body {
   height: 100%;
-  background: var(--color-bg-0);
-  color: var(--color-text-1);
+  background: var(--bg-0);
+  color: var(--text-1);
   font-family: var(--font-sans);
   font-size: var(--text-base);
   -webkit-font-smoothing: antialiased;
 }
 
-/* form labels: small, quiet, lowercase */
-.label {
+/* faint technical grid behind full-screen flows */
+.grid-bg {
+  background-image:
+    linear-gradient(var(--grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid-line) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* small mono eyebrow used above titles and as form labels */
+.eyebrow {
+  font-family: var(--font-mono);
   font-size: var(--text-xs);
-  color: var(--color-text-2);
-  letter-spacing: 0.04em;
-  text-transform: lowercase;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-3);
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-2);
+}
+
+.display {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  letter-spacing: -0.01em;
+  font-weight: 600;
 }
 
 .mono {
@@ -59,19 +193,95 @@ body {
   font-variant-numeric: tabular-nums;
 }
 
+/* signature: top-right corner cut, like the opzero header and cards */
+.bevel {
+  clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 14px, 100% 100%, 0 100%);
+}
+
+.bevel-lg {
+  clip-path: polygon(0 0, calc(100% - 22px) 0, 100% 22px, 100% 100%, 0 100%);
+}
+
+/* thin accent rule with a diagonal notch dropping from the left */
+.notch-rule {
+  position: relative;
+  height: 1px;
+  background: var(--line-2);
+}
+.notch-rule::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 64px;
+  height: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--line-glow);
+}
+.notch-rule::after {
+  content: "";
+  position: absolute;
+  left: 64px;
+  top: 0;
+  width: 12px;
+  height: 1px;
+  background: var(--accent);
+  transform-origin: left center;
+  transform: rotate(38deg);
+  box-shadow: 0 0 8px var(--line-glow);
+}
+
 *:focus-visible {
   outline: none;
-  box-shadow: 0 0 0 2px rgba(140, 169, 204, 0.4);
+  box-shadow: var(--focus-ring);
 }
 
 ::selection {
-  background: rgba(140, 169, 204, 0.25);
+  background: var(--accent-dim);
 }
 
-/* thin scrollbars that match the surface */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--color-line-2) transparent;
+  scrollbar-color: var(--line-2) transparent;
+}
+
+/* animations */
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes sweep {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.animate-rise {
+  animation: rise 0.4s var(--ease-out) both;
+}
+.animate-fade {
+  animation: fade 0.5s var(--ease-out) both;
+}
+.animate-sweep {
+  transform-origin: left center;
+  animation: sweep 0.5s var(--ease-out) both;
 }
 
 @media (prefers-reduced-motion: reduce) {

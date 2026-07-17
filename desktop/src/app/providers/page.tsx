@@ -19,7 +19,7 @@ import {
 import type { Provider } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, EmptyState } from "@/components/ui/card";
+import { Card, EmptyState, PageHeader } from "@/components/ui/card";
 import { Dialog } from "@/components/ui/dialog";
 import { Field, Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
@@ -35,7 +35,9 @@ export default function ProvidersPage() {
   const current = list.find((p) => p.name === (selected ?? activeName));
 
   return (
-    <div className="mx-auto grid max-w-5xl grid-cols-[240px_1fr] items-start gap-4">
+    <div className="mx-auto max-w-5xl">
+      <PageHeader eyebrow="models and keys" title="providers" />
+      <div className="grid grid-cols-[240px_1fr] items-start gap-4">
       <Card
         title="providers"
         actions={
@@ -66,8 +68,8 @@ export default function ProvidersPage() {
                   ) : null}
                   <span className="min-w-0 truncate">{p.label}</span>
                   <span className="flex shrink-0 items-center gap-1">
-                    {p.recommended ? <Badge tone="accent">rec</Badge> : null}
-                    {isActive ? <Badge tone="ok">active</Badge> : null}
+                    {p.recommended ? <Badge tone="neutral">rec</Badge> : null}
+                    {isActive ? <Badge tone="accent">active</Badge> : null}
                   </span>
                 </button>
               </li>
@@ -85,6 +87,7 @@ export default function ProvidersPage() {
       )}
 
       <AddProviderDialog open={addOpen} onOpenChange={setAddOpen} onCreated={setSelected} />
+      </div>
     </div>
   );
 }

@@ -14,7 +14,7 @@ import {
   useUpdates,
 } from "@/lib/queries";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, PageHeader } from "@/components/ui/card";
 import { Field, Input } from "@/components/ui/input";
 import { ToggleRow } from "@/components/ui/switch";
 import { useToast } from "@/components/ui/toast";
@@ -36,7 +36,9 @@ export default function SettingsPage() {
   );
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-4">
+    <div className="mx-auto max-w-3xl">
+      <PageHeader eyebrow="tuning and account" title="settings" />
+      <div className="flex flex-col gap-4">
       <Card title="reply behavior">
         <div className="grid grid-cols-2 gap-x-8 gap-y-4 sm:grid-cols-3">
           <NumberField
@@ -119,7 +121,7 @@ export default function SettingsPage() {
                     </span>
                   ) : null}
                 </p>
-                <p className="mt-0.5 text-xs text-ok">signed in</p>
+                <p className="mt-0.5 text-xs text-accent">signed in</p>
               </>
             ) : (
               <p className="text-sm text-text-3">not signed in</p>
@@ -147,6 +149,7 @@ export default function SettingsPage() {
           those files to reset the bot completely.
         </p>
       </Card>
+      </div>
     </div>
   );
 }

@@ -29,16 +29,16 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={push}>
       {children}
-      <div className="pointer-events-none fixed right-4 bottom-4 z-50 flex flex-col gap-2">
+      <div className="pointer-events-none fixed right-5 bottom-5 z-50 flex flex-col gap-2">
         {toasts.map((t) => (
           <div
             key={t.id}
             role="status"
-            className={`rounded-md border px-3 py-2 text-sm shadow-lg backdrop-blur ${
+            className={`bevel animate-rise rounded-sm border px-3.5 py-2 text-sm shadow-lg backdrop-blur ${
               t.tone === "ok"
-                ? "border-ok/30 bg-ok-dim text-ok"
+                ? "border-accent/40 bg-accent-dim text-accent"
                 : t.tone === "danger"
-                  ? "border-danger/30 bg-danger-dim text-danger"
+                  ? "border-danger/40 bg-danger-dim text-danger"
                   : "border-line-2 bg-bg-2 text-text-1"
             }`}
           >

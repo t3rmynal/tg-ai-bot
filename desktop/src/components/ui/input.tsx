@@ -2,13 +2,13 @@
 
 import { forwardRef, type InputHTMLAttributes, type TextareaHTMLAttributes } from "react";
 
-const base = `w-full rounded-sm border border-line-2 bg-bg-2 px-2.5 text-sm text-text-1
-  placeholder:text-text-3 transition-colors duration-120 hover:border-line-glow
-  focus:border-accent/50`;
+const base = `w-full rounded-sm border border-line-2 bg-bg-2 px-3 text-sm text-text-1
+  placeholder:text-text-3 transition-colors duration-150 hover:border-line-glow
+  focus:border-accent`;
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   function Input({ className = "", ...props }, ref) {
-    return <input ref={ref} className={`${base} h-8 ${className}`} {...props} />;
+    return <input ref={ref} className={`${base} h-9 ${className}`} {...props} />;
   },
 );
 
@@ -16,7 +16,7 @@ export const Textarea = forwardRef<
   HTMLTextAreaElement,
   TextareaHTMLAttributes<HTMLTextAreaElement>
 >(function Textarea({ className = "", ...props }, ref) {
-  return <textarea ref={ref} className={`${base} py-2 leading-relaxed ${className}`} {...props} />;
+  return <textarea ref={ref} className={`${base} py-2.5 leading-relaxed ${className}`} {...props} />;
 });
 
 export function Field({

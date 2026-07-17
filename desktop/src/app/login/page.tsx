@@ -4,6 +4,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useEffect, useRef, useState } from "react";
 
 import { useAuthStatus, useBeginQr, useSubmitPassword } from "@/lib/queries";
+import { useTheme } from "@/lib/theme";
 import { Button } from "@/components/ui/button";
 import { Field, Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
@@ -16,7 +17,6 @@ export default function LoginPage() {
   const state = auth.data?.state;
   const qr = auth.data?.qr;
 
-  // kick off the first qr as soon as we are connectable
   useEffect(() => {
     if (state === "unauthorized" && !startedRef.current) {
       startedRef.current = true;
@@ -24,7 +24,6 @@ export default function LoginPage() {
     }
   }, [state, beginQr]);
 
-  // refresh when the code expires
   useEffect(() => {
     if (state !== "qr_pending" || !qr?.expires_at) return;
     const ms = new Date(qr.expires_at).getTime() - Date.now();
@@ -33,40 +32,47 @@ export default function LoginPage() {
   }, [state, qr?.expires_at, beginQr]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg-0 p-6">
-      <div className="w-full max-w-sm rounded-lg border border-line-2 bg-bg-1 p-6">
-        <h1 className="text-xl font-medium text-text-1">sign in to telegram</h1>
+    <div className="grid-bg flex min-h-screen items-center justify-center bg-bg-0 p-6">
+      <div className="bevel-lg animate-rise w-full max-w-sm overflow-hidden rounded-lg border border-line-2 bg-bg-1">
+        <div className="h-1.5 w-full" style={{ background: "var(--hero-grad)" }} />
+        <div className="p-7">
+          <p className="eyebrow mb-1.5">step 02 / sign in</p>
+          <h1 className="display text-xl text-text-1">link your telegram</h1>
 
-        {state === "password_needed" ? (
-          <TwoFactorForm />
-        ) : (
-          <>
-            <p className="mt-2 text-sm text-text-2">
-              open telegram on your phone: settings, devices, link desktop device. then point the
-              camera here.
-            </p>
-            <div className="mt-5 flex flex-col items-center gap-4">
-              <div className="rounded-md bg-bg-2 p-4">
-                {qr?.url ? (
-                  <QRCodeSVG
-                    value={qr.url}
-                    size={232}
-                    bgColor="#151a24"
-                    fgColor="#e8edf4"
-                    marginSize={1}
-                  />
-                ) : (
-                  <div className="flex size-[232px] items-center justify-center">
-                    <Spinner size={20} />
-                  </div>
-                )}
+          {state === "password_needed" ? (
+            <TwoFactorForm />
+          ) : (
+            <>
+              <p className="mt-2 text-sm text-text-2">
+                open telegram on your phone: settings, devices, link desktop device. then point the
+                camera here.
+              </p>
+              <div className="mt-6 flex flex-col items-center gap-4">
+                <QrPanel url={qr?.url} />
+                {qr?.expires_at ? <QrCountdown expiresAt={qr.expires_at} /> : null}
+                <p className="mono text-xs text-text-3">the code refreshes itself about every 30s</p>
               </div>
-              {qr?.expires_at ? <QrCountdown expiresAt={qr.expires_at} /> : null}
-              <p className="text-xs text-text-3">the code refreshes itself about every 30s</p>
-            </div>
-          </>
-        )}
+            </>
+          )}
+        </div>
       </div>
+    </div>
+  );
+}
+
+function QrPanel({ url }: { url?: string }) {
+  const { resolved } = useTheme();
+  const bg = resolved === "dark" ? "#11161f" : "#ffffff";
+  const fg = resolved === "dark" ? "#eaf0f7" : "#0a1119";
+  return (
+    <div className="rounded-md border border-line-1 bg-bg-2 p-4">
+      {url ? (
+        <QRCodeSVG value={url} size={216} bgColor={bg} fgColor={fg} marginSize={1} />
+      ) : (
+        <div className="flex size-[216px] items-center justify-center">
+          <Spinner size={20} />
+        </div>
+      )}
     </div>
   );
 }
@@ -84,9 +90,9 @@ function QrCountdown({ expiresAt }: { expiresAt: string }) {
   }, [expiresAt]);
 
   return (
-    <div aria-hidden className="h-px w-[232px] bg-line-2">
+    <div aria-hidden className="h-px w-[216px] bg-line-2">
       <div
-        className="h-px bg-accent shadow-[0_0_6px_var(--color-line-glow)] transition-[width]"
+        className="h-px bg-accent shadow-[0_0_8px_var(--line-glow)] transition-[width] duration-200"
         style={{ width: `${fraction * 100}%` }}
       />
     </div>
@@ -103,7 +109,7 @@ function TwoFactorForm() {
   };
 
   return (
-    <form onSubmit={onSubmit} className="mt-4 flex flex-col gap-4">
+    <form onSubmit={onSubmit} className="mt-5 flex flex-col gap-4">
       <p className="text-sm text-text-2">
         this account has two step verification. enter the cloud password to finish.
       </p>

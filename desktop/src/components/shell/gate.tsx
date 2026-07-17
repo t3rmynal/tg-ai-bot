@@ -39,10 +39,11 @@ export function AppGate({ children }: { children: ReactNode }) {
   if (runtime.isError && auth.isError) {
     return (
       <Splash>
+        <p className="eyebrow">core offline</p>
         <Spinner size={18} />
         <p className="text-sm text-text-2">connecting to core</p>
         <p className="max-w-xs text-center text-xs text-text-3">
-          start it with <span className="mono text-text-2">python -m tgai</span> if it is not
+          start it with <span className="mono text-accent">python -m tgai</span> if it is not
           running
         </p>
       </Splash>
@@ -66,7 +67,7 @@ export function AppGate({ children }: { children: ReactNode }) {
 
 function Splash({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-3 bg-bg-0">
+    <div className="grid-bg flex min-h-screen flex-col items-center justify-center gap-3 bg-bg-0">
       {children}
     </div>
   );

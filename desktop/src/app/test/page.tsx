@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { useRuntime, useTestChat } from "@/lib/queries";
 import { Button } from "@/components/ui/button";
-import { Card, EmptyState } from "@/components/ui/card";
+import { Card, EmptyState, PageHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -49,7 +49,8 @@ export default function TestChatPage() {
   };
 
   return (
-    <div className="mx-auto flex h-[calc(100vh-96px)] max-w-3xl flex-col gap-4">
+    <div className="mx-auto flex h-[calc(100vh-140px)] max-w-3xl flex-col">
+      <PageHeader eyebrow="try the persona offline" title="test chat" />
       <Card
         title={`testing ${runtime.data?.persona ?? "..."} on ${runtime.data?.model ?? "..."}`}
         actions={

@@ -7,12 +7,12 @@ import { ArrowDownLeft, ArrowUpRight, CircleAlert, Info, Timer } from "lucide-re
 import { useLive } from "@/lib/live";
 import { useChats, useRuntime } from "@/lib/queries";
 import { timeOf, uptime } from "@/lib/format";
-import { Card, EmptyState } from "@/components/ui/card";
+import { Card, EmptyState, PageHeader } from "@/components/ui/card";
 import type { ActivityEvent } from "@/lib/types";
 
 const KIND_STYLE: Record<ActivityEvent["kind"], { icon: typeof Info; className: string }> = {
-  incoming: { icon: ArrowDownLeft, className: "text-accent" },
-  reply: { icon: ArrowUpRight, className: "text-ok" },
+  incoming: { icon: ArrowDownLeft, className: "text-text-2" },
+  reply: { icon: ArrowUpRight, className: "text-accent" },
   wait: { icon: Timer, className: "text-warn" },
   error: { icon: CircleAlert, className: "text-danger" },
   info: { icon: Info, className: "text-text-3" },
@@ -33,51 +33,55 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-4">
-      <Card title="at a glance">
-        <dl className="grid grid-cols-2 gap-x-8 gap-y-3 text-sm sm:grid-cols-3">
-          <GlanceItem
-            label="provider"
-            href="/providers/"
-            value={runtime.data?.provider_label || runtime.data?.provider || "..."}
-          />
-          <GlanceItem label="model" href="/providers/" value={runtime.data?.model || "not set"} mono />
-          <GlanceItem label="persona" href="/persona/" value={runtime.data?.persona || "..."} />
-          <GlanceItem
-            label="rate cap"
-            href="/providers/"
-            value={runtime.data ? `${runtime.data.rpm} rpm` : "..."}
-            mono
-          />
-          <GlanceItem
-            label="whitelist / blacklist"
-            href="/chats/"
-            value={
-              chats.data ? `${chats.data.whitelist.length} / ${chats.data.blacklist.length}` : "..."
-            }
-            mono
-          />
-          <GlanceItem
-            label="uptime"
-            href="/settings/"
-            value={runtime.data ? uptime(runtime.data.uptime_s) : "..."}
-            mono
-          />
-        </dl>
-      </Card>
+    <div className="mx-auto flex max-w-4xl flex-col">
+      <PageHeader eyebrow="overview" title="dashboard" />
 
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-5">
-        {tiles.map((t) => (
-          <div key={t.label} className="rounded-md border border-line-1 bg-bg-1 px-4 py-3">
-            <p className="mono text-xl text-text-1">{t.value ?? "..."}</p>
-            <p className="label mt-1">{t.label}</p>
-          </div>
-        ))}
+      <div className="flex flex-col gap-4">
+        <Card title="at a glance">
+          <dl className="grid grid-cols-2 gap-x-8 gap-y-4 text-sm sm:grid-cols-3">
+            <GlanceItem
+              label="provider"
+              href="/providers/"
+              value={runtime.data?.provider_label || runtime.data?.provider || "..."}
+            />
+            <GlanceItem label="model" href="/providers/" value={runtime.data?.model || "not set"} mono />
+            <GlanceItem label="persona" href="/persona/" value={runtime.data?.persona || "..."} />
+            <GlanceItem
+              label="rate cap"
+              href="/providers/"
+              value={runtime.data ? `${runtime.data.rpm} rpm` : "..."}
+              mono
+            />
+            <GlanceItem
+              label="whitelist / blacklist"
+              href="/chats/"
+              value={
+                chats.data ? `${chats.data.whitelist.length} / ${chats.data.blacklist.length}` : "..."
+              }
+              mono
+            />
+            <GlanceItem
+              label="uptime"
+              href="/settings/"
+              value={runtime.data ? uptime(runtime.data.uptime_s) : "..."}
+              mono
+            />
+          </dl>
+        </Card>
+
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+          {tiles.map((t) => (
+            <div key={t.label} className="bevel rounded-md border border-line-1 bg-bg-1 px-4 py-3.5">
+              <p className="display text-2xl text-text-1">{t.value ?? "..."}</p>
+              <p className="label mt-1">{t.label}</p>
+            </div>
+          ))}
+        </div>
+
+        <Card title="activity">
+          <ActivityFeed events={events} />
+        </Card>
       </div>
-
-      <Card title="activity" className="flex-1">
-        <ActivityFeed events={events} />
-      </Card>
     </div>
   );
 }
@@ -96,10 +100,10 @@ function GlanceItem({
   return (
     <div className="min-w-0">
       <dt className="label">{label}</dt>
-      <dd className="mt-0.5 truncate">
+      <dd className="mt-1 truncate">
         <Link
           href={href}
-          className={`text-text-1 transition-colors duration-120 hover:text-accent ${
+          className={`text-text-1 transition-colors duration-150 hover:text-accent ${
             mono ? "mono text-sm" : ""
           }`}
         >

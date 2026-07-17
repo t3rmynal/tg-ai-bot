@@ -29,10 +29,12 @@ export default function SetupPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-bg-0 p-6">
-      <div className="w-full max-w-sm rounded-lg border border-line-2 bg-bg-1 p-6">
-        <p className="mono text-xs tracking-wide text-text-3">first run</p>
-        <h1 className="mt-1 text-xl font-medium text-text-1">connect your telegram app keys</h1>
+    <div className="grid-bg flex min-h-screen items-center justify-center bg-bg-0 p-6">
+      <div className="bevel-lg animate-rise w-full max-w-sm overflow-hidden rounded-lg border border-line-2 bg-bg-1">
+        <div className="h-1.5 w-full" style={{ background: "var(--hero-grad)" }} />
+        <div className="p-7">
+        <p className="eyebrow mb-1.5">step 01 / first run</p>
+        <h1 className="display text-xl text-text-1">connect your telegram keys</h1>
         <p className="mt-2 text-sm text-text-2">
           the bot signs in as you, so it needs your own api pair from{" "}
           <button
@@ -45,7 +47,7 @@ export default function SetupPage() {
           . keys stay in a local config file.
         </p>
 
-        <form onSubmit={onSubmit} className="mt-5 flex flex-col gap-4">
+        <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
           <Field label="api_id" hint={apiId && !idValid ? "digits only" : undefined}>
             <Input
               inputMode="numeric"
@@ -72,6 +74,7 @@ export default function SetupPage() {
             continue to sign in
           </Button>
         </form>
+        </div>
       </div>
     </div>
   );
