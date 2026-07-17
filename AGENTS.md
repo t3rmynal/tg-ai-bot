@@ -52,37 +52,52 @@ on a `vX.Y.Z` tag. See rules_public.md for the release and versioning steps.
 
 ## design (locked)
 
-Do not change fonts, tokens, or the green-is-success-only rule without the owner asking.
+Do not change fonts, tokens, or the light+dark parity without the owner asking.
 
-Colors (dark only, defined in `desktop/src/app/globals.css`):
+Visual language: operation-zero (opzero.ru). Electric blue accent, beveled top-right
+corners on cards and panels, thin rules with a diagonal notch under page titles and
+dialog titles, heavy uppercase display type, mono digits everywhere. Light and dark
+both follow the system by default (`prefers-color-scheme`), a header toggle can pin
+one via `data-theme` + localStorage. Both themes are first class, never dark-only.
+
+Colors (defined in `desktop/src/app/globals.css`, light values first, dark in parens):
 
 ```
---bg-0      #0b0e14                       app background
---bg-1      #10141c                       panels, sidebar
---bg-2      #151a24                       cards, inputs, rows
---bg-3      #1b2130                       hover, active row, overlays
---line-1    #1c2330                       default hairline border
---line-2    #28303f                       emphasized border
---line-glow rgba(140,169,204,0.22)        thin luminous rules, decoration only
---text-1    #e8edf4                       primary text
---text-2    #9aa7b8                       secondary, labels
---text-3    #5d6a7d                       muted, placeholders, timestamps
---accent    #8ca9cc                       interactive: links, active nav, focus, switches
---accent-dim rgba(140,169,204,0.12)       interactive hover/selected fills
---ok        #3ecf6e                       success only: bot-on dot, signed-in badge,
-                                          reply feed rows, success toasts. nowhere else
---ok-dim    rgba(62,207,110,0.12)
---warn      #c9a05f                       rate-limit waits, expiring qr
---danger    #c56a73                       errors, blacklist, destructive actions
---danger-dim rgba(197,106,115,0.12)
+--bg-0      #edf1f7 (#070a0f)   page background, tinted in light, near-black in dark
+--bg-1      #ffffff (#0d121a)   panels, sidebar, cards
+--bg-2      #f5f8fb (#121826)   inputs, nested rows
+--bg-3      #e7edf4 (#1a2231)   hover, active row, overlays
+--line-1    #dde4ee (#1d2634)   default hairline border
+--line-2    #c7d2e0 (#2c3849)   emphasized border, input border
+--line-glow rgba(*, 0.28-0.32)  thin luminous rules, decoration only
+--text-1    #0a1119 (#eaf0f7)   primary text
+--text-2    #42536a (#93a3b5)   secondary, labels, hints
+--text-3    #5d7085 (#64758a)   muted, placeholders, timestamps
+--accent    #0a84ff (#3ea0ff)   interactive: links, active nav, focus, switches, primary buttons
+--accent-2  #4db5ff (#6bc1ff)   accent gradient partner (hero-grad, qr countdown)
+--accent-dim rgba(*, 0.1-0.12)  interactive hover/selected fills
+--accent-fg #ffffff (#05080d)   text on solid accent fills
+--warn      #a86c15 (#d0a24a)   rate-limit waits, expiring qr, unsupported features
+--danger    #c93a46 (#d97078)   errors, blacklist, destructive actions, missing keys
 ```
 
-Typography: IBM Plex Sans (ui), IBM Plex Mono (model ids, chat ids, key hints, timestamps,
-stats digits, prompts, feed text; tabular-nums for digits). Bundled via @fontsource, never
-a cdn. Sizes 12/13/14/16/20/26, weights 400/500/600 only. Labels: 12px, --text-2,
-letter-spacing 0.04em, lowercase.
+no green anywhere. success is communicated with the accent color or plain text, not a
+separate ok token.
 
-Spacing on a 4px grid (4..48), page gutter 24, sidebar 208. Radii: 4 inputs, 6 buttons and
-cards, 10 dialogs. Motion: 120ms ease-out hover, 200ms dialogs, no springs, respect
-prefers-reduced-motion. Primary buttons are off-white fill with #0b0e14 text. Green never
-appears on generic buttons or toggles.
+Typography: Space Grotesk (display: page titles, stat digits, dialog titles, uppercase),
+IBM Plex Sans (ui body), IBM Plex Mono (model ids, chat ids, key hints, timestamps, ghost
+index numbers, prompts, feed text; tabular-nums for digits). Bundled via @fontsource,
+never a cdn. Sizes 12/13/14/16/22/30/44, weights 400/500/600 only. Labels: 12px, --text-2,
+letter-spacing 0.08em, lowercase. Eyebrows: 12px, --text-3, letter-spacing 0.18em, uppercase.
+
+Signature elements: `.bevel` / `.bevel-lg` / `.bevel-sm` clip the top-right corner (14px,
+22px, 8px). `.notch-rule` draws the accent rule with a diagonal drop under page and dialog
+titles. Page masthead (`PageHeader`) pairs an eyebrow + big display title with an outlined
+`.ghost-num` page index (01..07) matching the sidebar nav numbers. Card headers carry a
+small accent tick before the label. One shared `Segmented` component for every mode picker,
+do not hand-roll another button-row toggle.
+
+Spacing on a 4px grid (4..48), page gutter 24, sidebar 220. Radii: 4 inputs, 6 buttons and
+cards, 10 dialogs. Motion: 150ms ease-out hover/press, 200ms dialogs, no springs, respect
+prefers-reduced-motion. Primary buttons are accent fill with a small bevel and a 1px press
+translate. Switches are bordered tracks with a white thumb, accent fill when on.
