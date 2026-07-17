@@ -50,6 +50,11 @@ async def runtime(state=Depends(get_state)):
     return _runtime_payload(state)
 
 
+@router.get("/updates")
+async def updates(force: bool = False, state=Depends(get_state)):
+    return await state.updates.check(state.ai.get_session(), force=force)
+
+
 @router.put("/runtime/enabled")
 async def set_enabled(body: EnabledIn, state=Depends(get_state)):
     state.cfg.set("behavior.enabled", body.enabled)

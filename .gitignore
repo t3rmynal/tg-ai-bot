@@ -28,6 +28,7 @@ node_modules/
 desktop/out/
 desktop/.next/
 desktop/next-env.d.ts
+desktop/tsconfig.tsbuildinfo
 desktop/src-tauri/target/
 desktop/src-tauri/binaries/*
 !desktop/src-tauri/binaries/.gitkeep

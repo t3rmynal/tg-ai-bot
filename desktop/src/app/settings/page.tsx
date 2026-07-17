@@ -1,14 +1,17 @@
 "use client";
 
-import { LogOut } from "lucide-react";
+import { openUrl } from "@tauri-apps/plugin-opener";
+import { ExternalLink, LogOut, RefreshCw } from "lucide-react";
 import { useState } from "react";
 
 import {
   useAuthStatus,
+  useCheckUpdates,
   useLogout,
   usePatchSettings,
   useProviders,
   useSettings,
+  useUpdates,
 } from "@/lib/queries";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -135,6 +138,8 @@ export default function SettingsPage() {
         </div>
       </Card>
 
+      <UpdatesCard />
+
       <Card title="data">
         <p className="text-xs leading-relaxed text-text-3">
           everything lives next to the core process: config.json holds settings and provider keys,
@@ -143,6 +148,52 @@ export default function SettingsPage() {
         </p>
       </Card>
     </div>
+  );
+}
+
+function UpdatesCard() {
+  const updates = useUpdates();
+  const check = useCheckUpdates();
+  const info = check.data ?? updates.data;
+
+  return (
+    <Card
+      title="updates"
+      actions={
+        <Button
+          size="sm"
+          variant="ghost"
+          disabled={check.isPending}
+          onClick={() => check.mutate()}
+        >
+          <RefreshCw size={13} strokeWidth={1.5} className={check.isPending ? "animate-spin" : ""} />
+          check now
+        </Button>
+      }
+    >
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <p className="mono text-sm text-text-1">v{info?.current ?? "..."}</p>
+          {info?.update_available ? (
+            <p className="mt-0.5 text-xs text-accent">v{info.latest} is out</p>
+          ) : info?.error ? (
+            <p className="mt-0.5 text-xs text-text-3">could not reach github: {info.error}</p>
+          ) : info?.latest ? (
+            <p className="mt-0.5 text-xs text-text-3">latest release is v{info.latest}, you are current</p>
+          ) : (
+            <p className="mt-0.5 text-xs text-text-3">no releases published yet</p>
+          )}
+        </div>
+        {info?.update_available && info.url ? (
+          <Button
+            size="sm"
+            onClick={() => openUrl(info.url).catch(() => window.open(info.url, "_blank"))}
+          >
+            open release <ExternalLink size={12} strokeWidth={1.5} />
+          </Button>
+        ) : null}
+      </div>
+    </Card>
   );
 }
 

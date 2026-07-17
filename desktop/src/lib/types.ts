@@ -147,3 +147,11 @@ export interface TestChatReply {
   reply: string;
   latency_ms: number;
 }
+
+export interface UpdateInfo {
+  current: string;
+  latest: string | null;
+  update_available: boolean;
+  url: string;
+  error?: string;
+}

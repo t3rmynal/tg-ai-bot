@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 
 import { useLive } from "@/lib/live";
-import { useRuntime, useSetEnabled } from "@/lib/queries";
+import { useRuntime, useSetEnabled, useUpdates } from "@/lib/queries";
 import { Switch } from "@/components/ui/switch";
 
 const NAV = [
@@ -29,6 +29,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const { connected } = useLive();
   const runtime = useRuntime();
   const setEnabled = useSetEnabled();
+  const updates = useUpdates();
 
   const enabled = runtime.data?.enabled ?? false;
 
@@ -69,7 +70,16 @@ export function Shell({ children }: { children: React.ReactNode }) {
           })}
         </nav>
         <div className="mt-auto px-5 py-4">
-          <p className="mono text-xs text-text-3">v{runtime.data?.version ?? "..."}</p>
+          {updates.data?.update_available ? (
+            <Link
+              href="/settings/"
+              className="mono text-xs text-accent transition-colors duration-120 hover:underline"
+            >
+              v{runtime.data?.version ?? "..."} : v{updates.data.latest} available
+            </Link>
+          ) : (
+            <p className="mono text-xs text-text-3">v{runtime.data?.version ?? "..."}</p>
+          )}
         </div>
       </aside>
 

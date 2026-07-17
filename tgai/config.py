@@ -18,6 +18,7 @@ def _defaults() -> dict:
     return {
         "telegram": {"api_id": None, "api_hash": None},
         "api": {"host": "127.0.0.1", "port": 8471},
+        "update_repo": "canary443/tg-ai-bot",
         "active_provider": "nvidia",
         "providers": providers.default_providers(),
         "active_model": "moonshotai/kimi-k2.6",

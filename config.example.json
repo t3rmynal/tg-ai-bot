@@ -7,6 +7,7 @@
     "host": "127.0.0.1",
     "port": 8471
   },
+  "update_repo": "canary443/tg-ai-bot",
   "active_provider": "nvidia",
   "providers": {
     "nvidia": {

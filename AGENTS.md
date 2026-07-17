@@ -39,6 +39,8 @@ pnpm -C desktop tauri dev           # desktop window
 - api keys never leave the backend unmasked. GET responses carry `key_set` and a masked hint
 - runtime files (`config.json`, `histories.json`, `userbot.session`, `bot.log`) stay
   gitignored and their formats stay backward compatible
+- versioning, release and doc-sync rules live in `rules_public.md`. version source of truth
+  is `__version__` in `tgai/__init__.py`
 - local untracked notes may exist in `rules.md` and `handoff.md`. if present, read
   `rules.md` before committing and `handoff.md` before starting work
 

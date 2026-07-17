@@ -15,6 +15,7 @@ from tgai.personas import Identity
 from tgai.ratelimit import ActivityFeed
 from tgai.telegram.auth import AuthManager
 from tgai.telegram.bot import BotRunner
+from tgai.updates import DEFAULT_REPO, UpdateChecker
 
 logger = logging.getLogger(__name__)
 
@@ -27,6 +28,7 @@ class AppState:
     ai: AIService
     auth: AuthManager
     bot: BotRunner
+    updates: UpdateChecker
     started_at: float = field(default_factory=monotonic)
 
 
@@ -42,7 +44,8 @@ def build_state(config_path: str = "config.json", histories_path: str = "histori
     bot = BotRunner(cfg, ai, feed, identity)
     auth.on_authorized = lambda: bot.attach(auth.client)
     auth.on_logout = bot.detach
-    return AppState(cfg=cfg, feed=feed, identity=identity, ai=ai, auth=auth, bot=bot)
+    updates = UpdateChecker(cfg.get("update_repo") or DEFAULT_REPO)
+    return AppState(cfg=cfg, feed=feed, identity=identity, ai=ai, auth=auth, bot=bot, updates=updates)
 
 
 def setup_logging() -> None:

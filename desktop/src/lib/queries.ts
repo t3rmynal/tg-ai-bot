@@ -18,6 +18,7 @@ import type {
   Settings,
   SettingsPatch,
   TestChatReply,
+  UpdateInfo,
 } from "./types";
 
 export const keys = {
@@ -245,6 +246,25 @@ export function useRemoveFromList() {
   return useChatsMutation(({ list, chatId }: { list: "whitelist" | "blacklist"; chatId: number }) =>
     api.del<ChatLists>(`/chats/${list}/${chatId}`),
   );
+}
+
+// updates
+
+export function useUpdates() {
+  return useQuery({
+    queryKey: ["updates"],
+    queryFn: () => api.get<UpdateInfo>("/updates"),
+    staleTime: 60 * 60_000,
+    retry: 1,
+  });
+}
+
+export function useCheckUpdates() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.get<UpdateInfo>("/updates?force=true"),
+    onSuccess: (data) => qc.setQueryData(["updates"], data),
+  });
 }
 
 // test chat

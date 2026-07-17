@@ -13,6 +13,7 @@ from tgai.personas import Identity
 from tgai.ratelimit import ActivityFeed
 from tgai.telegram.auth import AuthManager
 from tgai.telegram.bot import BotRunner
+from tgai.updates import UpdateChecker
 
 
 @pytest.fixture
@@ -139,7 +140,10 @@ def make_state(tmp_path, responses=None) -> AppState:
     bot = BotRunner(cfg, ai, feed, identity)
     auth.on_authorized = lambda: bot.attach(auth.client)
     auth.on_logout = bot.detach
-    state = AppState(cfg=cfg, feed=feed, identity=identity, ai=ai, auth=auth, bot=bot)
+    state = AppState(
+        cfg=cfg, feed=feed, identity=identity, ai=ai, auth=auth, bot=bot,
+        updates=UpdateChecker("example/repo"),
+    )
     state.fake_session = session  # type: ignore[attr-defined]
     return state
 
