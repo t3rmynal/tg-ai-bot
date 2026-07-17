@@ -1,0 +1,17 @@
+Metadata-Version: 2.4
+Name: tgai
+Version: 3.0.0
+Summary: ai userbot for your own telegram account
+License: MIT
+Requires-Python: >=3.10
+License-File: LICENSE
+Requires-Dist: telethon<2.0.0,>=1.24.0
+Requires-Dist: aiohttp<4.0.0,>=3.8.0
+Requires-Dist: fastapi>=0.115
+Requires-Dist: uvicorn>=0.30
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-asyncio; extra == "dev"
+Requires-Dist: httpx; extra == "dev"
+Requires-Dist: ruff; extra == "dev"
+Dynamic: license-file

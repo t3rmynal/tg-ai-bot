@@ -8,24 +8,17 @@ import time
 
 import pytest
 
-import ai_service
-import config
-import personas
-import providers
-import userbot
-from ai_service import AIError, RateLimited
-from ratelimit import AsyncRateLimiter
+from tgai import ai_service, personas, providers
+from tgai.ai_service import AIError, AIService, RateLimited
+from tgai.config import _deep_merge
+from tgai.personas import Identity
+from tgai.ratelimit import ActivityFeed, AsyncRateLimiter
+from tgai.telegram.bot import BotRunner
 
+from .conftest import FakeResp, FakeSession
 
-@pytest.fixture(autouse=True)
-def isolate_config(tmp_path, monkeypatch):
-    # keep tests from touching the real config.json
-    monkeypatch.setattr(config, "CONFIG_FILE", str(tmp_path / "config.json"))
-    config.load()
-    yield
+# rate limiter
 
-
-# ── rate limiter ─────────────────────────────────────────────────────────
 
 def test_rate_limiter_spaces_calls():
     async def go():
@@ -46,51 +39,76 @@ def test_retry_after_parsing():
     assert ai_service._retry_after("garbage", 1) > 0.0                     # falls back to backoff
 
 
-# ── config ───────────────────────────────────────────────────────────────
+# config
+
 
 def test_deep_merge_fills_missing():
-    merged = config._deep_merge({"a": 1, "b": {"c": 2, "d": 3}}, {"b": {"c": 9}})
+    merged = _deep_merge({"a": 1, "b": {"c": 2, "d": 3}}, {"b": {"c": 9}})
     assert merged["a"] == 1
     assert merged["b"]["c"] == 9   # existing kept
     assert merged["b"]["d"] == 3   # missing filled
 
 
-def test_is_chat_allowed_rules():
-    config.set("behavior.enabled", True)
-    config.set("blacklist_chats", [5])
-    config.set("active_chats", [10])
-    assert config.is_chat_allowed(10) is True
-    assert config.is_chat_allowed(11) is False   # whitelist active
-    assert config.is_chat_allowed(5) is False     # blacklisted
-    config.set("active_chats", [])
-    assert config.is_chat_allowed(11) is True      # empty whitelist -> all
-    config.set("behavior.enabled", False)
-    assert config.is_chat_allowed(10) is False
+def test_is_chat_allowed_rules(cfg):
+    cfg.set("behavior.enabled", True)
+    cfg.set("blacklist_chats", [5])
+    cfg.set("active_chats", [10])
+    assert cfg.is_chat_allowed(10) is True
+    assert cfg.is_chat_allowed(11) is False   # whitelist active
+    assert cfg.is_chat_allowed(5) is False    # blacklisted
+    cfg.set("active_chats", [])
+    assert cfg.is_chat_allowed(11) is True    # empty whitelist -> all
+    cfg.set("behavior.enabled", False)
+    assert cfg.is_chat_allowed(10) is False
 
 
-# ── providers ────────────────────────────────────────────────────────────
+def test_old_config_gains_new_defaults(tmp_path):
+    # a config written before the api/willow keys existed still loads fine
+    import json
 
-def test_switch_provider_snaps_model():
-    providers.set_active_provider("groq")
-    assert config.get("active_provider") == "groq"
-    assert config.get("active_model") in providers.models("groq")
+    from tgai.config import ConfigStore
+
+    path = tmp_path / "config.json"
+    path.write_text(json.dumps({"telegram": {"api_id": 1, "api_hash": "x"}, "active_provider": "groq"}))
+    store = ConfigStore(str(path))
+    store.load()
+    assert store.get("api.port") == 8471
+    assert "willow" in store.get("providers")
+    assert "opencode" in store.get("providers")
+    assert store.get("active_provider") == "groq"  # user value kept
 
 
-def test_add_and_remove_model():
-    assert providers.add_model("nvidia", "test/model") is True
-    assert "test/model" in providers.models("nvidia")
-    assert providers.add_model("nvidia", "test/model") is False  # dup
-    assert providers.remove_model("nvidia", "test/model") is True
-    assert "test/model" not in providers.models("nvidia")
+# providers
 
 
-# ── personas ─────────────────────────────────────────────────────────────
+def test_switch_provider_snaps_model(cfg):
+    providers.set_active_provider(cfg, "groq")
+    assert cfg.get("active_provider") == "groq"
+    assert cfg.get("active_model") in providers.models(cfg, "groq")
 
-def test_render_uses_name_and_language():
-    config.set("persona", "assistant")
-    config.set("bot_name", "kulebyaka")
-    config.set("language", "en")
-    out = personas.render()
+
+def test_add_and_remove_model(cfg):
+    assert providers.add_model(cfg, "nvidia", "test/model") is True
+    assert "test/model" in providers.models(cfg, "nvidia")
+    assert providers.add_model(cfg, "nvidia", "test/model") is False  # dup
+    assert providers.remove_model(cfg, "nvidia", "test/model") is True
+    assert "test/model" not in providers.models(cfg, "nvidia")
+
+
+def test_mask_key():
+    assert providers.mask_key("") == ""
+    assert providers.mask_key("short") == "sh..."
+    assert providers.mask_key("sk-abcdefghijklmnop") == "sk-ab...mnop"
+
+
+# personas
+
+
+def test_render_uses_name_and_language(cfg):
+    cfg.set("persona", "assistant")
+    cfg.set("bot_name", "kulebyaka")
+    cfg.set("language", "en")
+    out = personas.render(cfg, Identity())
     assert "kulebyaka" in out
     assert "English" in out
 
@@ -102,7 +120,8 @@ def test_build_custom_keeps_guardrails():
     assert "English" in out
 
 
-# ── userbot DM decision ──────────────────────────────────────────────────
+# bot dm decision
+
 
 class _FakeMsg:
     def __init__(self, mid=1):
@@ -126,93 +145,79 @@ class _FakeEvent:
         self.message = msg
 
 
-def test_dm_new_dialogues_only():
-    config.set("behavior.reply_in_dm", True)
-    config.set("behavior.dm_new_dialogues_only", True)
-    config.set("active_chats", [])
+def _make_bot(cfg) -> BotRunner:
+    feed = ActivityFeed()
+    identity = Identity()
+    ai = AIService(cfg, feed, identity, histories_path="unused.json", session_factory=FakeSession)
+    return BotRunner(cfg, ai, feed, identity)
+
+
+def test_dm_new_dialogues_only(cfg):
+    cfg.set("behavior.reply_in_dm", True)
+    cfg.set("behavior.dm_new_dialogues_only", True)
+    cfg.set("active_chats", [])
+    bot = _make_bot(cfg)
     msg = _FakeMsg()
 
     # only the incoming message -> brand new dialogue -> answer
     ev_new = _FakeEvent(_FakeClient([msg]), msg)
-    assert asyncio.run(userbot._should_respond(ev_new, msg, 1, is_group=False)) is True
+    assert asyncio.run(bot._should_respond(ev_new, msg, 1, is_group=False)) is True
 
     # there is older history -> skip
     ev_old = _FakeEvent(_FakeClient([msg, _FakeMsg(2)]), msg)
-    assert asyncio.run(userbot._should_respond(ev_old, msg, 1, is_group=False)) is False
+    assert asyncio.run(bot._should_respond(ev_old, msg, 1, is_group=False)) is False
 
 
-def test_whitelisted_chat_always_responds():
-    config.set("behavior.reply_in_dm", False)   # DMs off...
-    config.set("active_chats", [42])            # ...but chat is whitelisted
+def test_whitelisted_chat_always_responds(cfg):
+    cfg.set("behavior.reply_in_dm", False)   # dms off...
+    cfg.set("active_chats", [42])            # ...but chat is whitelisted
+    bot = _make_bot(cfg)
     msg = _FakeMsg()
     ev = _FakeEvent(_FakeClient([msg]), msg)
-    assert asyncio.run(userbot._should_respond(ev, msg, 42, is_group=False)) is True
+    assert asyncio.run(bot._should_respond(ev, msg, 42, is_group=False)) is True
 
 
-# ── ai_service 429 handling (mocked HTTP) ────────────────────────────────
-
-class _FakeResp:
-    def __init__(self, status, payload=None, headers=None):
-        self.status = status
-        self._payload = payload or {}
-        self.headers = headers or {}
-
-    async def __aenter__(self):
-        return self
-
-    async def __aexit__(self, *a):
-        return False
-
-    async def json(self):
-        return self._payload
-
-    async def text(self):
-        return "error body"
+# ai service 429 handling (mocked http)
 
 
-class _FakeSession:
-    def __init__(self, responses):
-        self._responses = list(responses)
-        self.closed = False
-
-    def post(self, *a, **k):
-        return self._responses.pop(0)
-
-
-def _setup_provider():
-    config.set("active_provider", "nvidia")
-    config.set("providers.nvidia.api_key", "nvapi-test")
-    config.set("active_model", "moonshotai/kimi-k2.6")
+def _make_ai(cfg, tmp_path, responses) -> AIService:
+    cfg.set("active_provider", "nvidia")
+    cfg.set("providers.nvidia.api_key", "nvapi-test")
+    cfg.set("active_model", "moonshotai/kimi-k2.6")
+    session = FakeSession(responses)
+    return AIService(
+        cfg, ActivityFeed(), Identity(),
+        histories_path=str(tmp_path / "h.json"),
+        session_factory=lambda: session,
+    )
 
 
-def test_429_then_success(monkeypatch, tmp_path):
-    _setup_provider()
-    monkeypatch.setattr(ai_service, "HISTORIES_FILE", str(tmp_path / "h.json"))
+def test_429_then_success(cfg, tmp_path):
     ok = {"choices": [{"message": {"content": "hello \u2014 friend"}}]}
-    session = _FakeSession([
-        _FakeResp(429, headers={"Retry-After": "0"}),
-        _FakeResp(200, ok),
+    ai = _make_ai(cfg, tmp_path, [
+        FakeResp(429, headers={"Retry-After": "0"}),
+        FakeResp(200, ok),
     ])
-    monkeypatch.setattr(ai_service, "_get_session", lambda: session)
-
-    out = asyncio.run(ai_service.ask_ai(1, "hi"))
+    out = asyncio.run(ai.ask(1, "hi"))
     assert out == "hello - friend"          # em-dash normalised
-    assert ai_service.stats["rate_limited"] >= 1
+    assert ai.stats["rate_limited"] >= 1
 
 
-def test_429_exhausted_raises_ratelimited(monkeypatch, tmp_path):
-    _setup_provider()
-    monkeypatch.setattr(ai_service, "HISTORIES_FILE", str(tmp_path / "h.json"))
-    session = _FakeSession([_FakeResp(429, headers={"Retry-After": "0"}) for _ in range(4)])
-    monkeypatch.setattr(ai_service, "_get_session", lambda: session)
+def test_429_exhausted_raises_ratelimited(cfg, tmp_path):
+    ai = _make_ai(cfg, tmp_path, [FakeResp(429, headers={"Retry-After": "0"}) for _ in range(4)])
     with pytest.raises(RateLimited):
-        asyncio.run(ai_service.ask_ai(1, "hi"))
+        asyncio.run(ai.ask(1, "hi"))
 
 
-def test_auth_error_raises_not_returns(monkeypatch, tmp_path):
-    _setup_provider()
-    monkeypatch.setattr(ai_service, "HISTORIES_FILE", str(tmp_path / "h.json"))
-    session = _FakeSession([_FakeResp(401)])
-    monkeypatch.setattr(ai_service, "_get_session", lambda: session)
+def test_auth_error_raises_not_returns(cfg, tmp_path):
+    ai = _make_ai(cfg, tmp_path, [FakeResp(401)])
     with pytest.raises(AIError):
-        asyncio.run(ai_service.ask_ai(1, "hi"))
+        asyncio.run(ai.ask(1, "hi"))
+
+
+def test_test_chat_does_not_touch_history(cfg, tmp_path):
+    ok = {"choices": [{"message": {"content": "sure"}}]}
+    ai = _make_ai(cfg, tmp_path, [FakeResp(200, ok)])
+    out = asyncio.run(ai.test_chat("hello", [{"role": "user", "content": "prior"}]))
+    assert out == "sure"
+    assert ai.histories == {}

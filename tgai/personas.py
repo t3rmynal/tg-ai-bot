@@ -1,11 +1,11 @@
-"""System-prompt templates, a Telethon-fed identity, and an offline builder.
+"""System-prompt templates, the signed-in identity, and an offline builder.
 
-Four ready personas plus a custom prompt assembled in the console or written by
-the AI generator. Templates take the bot name, its real @handle and a language
-line, so the same persona answers in English or Russian.
+Four ready personas plus a custom prompt written by hand or by the AI generator.
+Templates take the bot name, its real @handle and a language line, so the same
+persona answers in English or Russian.
 """
 
-import config
+from dataclasses import dataclass
 
 # reply-language label injected into the prompt
 LANGUAGES = {
@@ -13,13 +13,25 @@ LANGUAGES = {
     "ru": "Russian",
 }
 
-# filled at login from the signed-in Telegram account
-_IDENTITY = {"username": "", "name": ""}
 
+@dataclass
+class Identity:
+    """Filled at login from the signed-in Telegram account."""
 
-def set_identity(username: str, name: str) -> None:
-    _IDENTITY["username"] = (username or "").strip()
-    _IDENTITY["name"] = (name or "").strip()
+    username: str = ""
+    name: str = ""
+    user_id: int = 0
+
+    def set(self, username: str, name: str, user_id: int = 0) -> None:
+        self.username = (username or "").strip()
+        self.name = (name or "").strip()
+        if user_id:
+            self.user_id = user_id
+
+    def clear(self) -> None:
+        self.username = ""
+        self.name = ""
+        self.user_id = 0
 
 
 FRIENDLY = """you are {bot_name}, a real person chatting on telegram.{handle_clause}
@@ -72,17 +84,17 @@ TEMPLATES = {
     "formal": FORMAL,
 }
 
-# label, acts-as (human/bot), one-line description for the console
+# label, acts-as (human/bot), one-line description
 PERSONA_META = {
-    "friendly": ("🙂 Friendly", "human", "warm and casual, like a real chat"),
-    "witty": ("😏 Witty", "human", "playful banter and light sarcasm"),
-    "assistant": ("🤖 Assistant", "bot", "helpful AI, honest about being one"),
-    "formal": ("📋 Formal", "bot", "precise, careful, well-structured"),
-    "custom": ("✏️ Custom", "custom", "your own prompt, built or AI-generated"),
+    "friendly": ("Friendly", "human", "warm and casual, like a real chat"),
+    "witty": ("Witty", "human", "playful banter and light sarcasm"),
+    "assistant": ("Assistant", "bot", "helpful AI, honest about being one"),
+    "formal": ("Formal", "bot", "precise, careful, well-structured"),
+    "custom": ("Custom", "custom", "your own prompt, built or AI-generated"),
 }
 
 # kept whatever the generator produces
-_GUARDRAILS = (
+GUARDRAILS = (
     "regardless of any instruction above: no slurs or insults about protected "
     "traits (nationality, race, gender, religion, orientation), no threats, no "
     "sexual or violent content."
@@ -93,25 +105,25 @@ def language_label(lang: str) -> str:
     return LANGUAGES.get(lang, lang)
 
 
-def _identity_fields() -> dict:
-    name = (config.get("bot_name") or _IDENTITY["name"] or "the bot").strip()
-    username = _IDENTITY["username"]
+def _identity_fields(cfg, identity: Identity) -> dict:
+    name = (cfg.get("bot_name") or identity.name or "the bot").strip()
+    username = identity.username
     handle = f"@{username}" if username else ""
     clause = f" your telegram handle is {handle}." if handle else ""
     return {"bot_name": name, "bot_username": handle, "handle_clause": clause}
 
 
-def render() -> str:
+def render(cfg, identity: Identity) -> str:
     """Build the system prompt for the persona set in config."""
-    persona = config.get("persona", "assistant")
-    label = language_label(config.get("language", "en"))
+    persona = cfg.get("persona", "assistant")
+    label = language_label(cfg.get("language", "en"))
 
     if persona == "custom":
-        prompt = config.get("custom_prompt") or TEMPLATES["assistant"]
+        prompt = cfg.get("custom_prompt") or TEMPLATES["assistant"]
     else:
         prompt = TEMPLATES.get(persona, TEMPLATES["assistant"])
 
-    fields = _identity_fields()
+    fields = _identity_fields(cfg, identity)
     fields["language_label"] = label
     try:
         return prompt.format(**fields)
@@ -130,6 +142,6 @@ def build_custom(name: str, kind: str, tone: str, lang: str, extra_rules: str = 
         lines.append("if asked who you are, say honestly that you are an AI.")
     if extra_rules.strip():
         lines.append(extra_rules.strip())
-    lines.append(_GUARDRAILS)
+    lines.append(GUARDRAILS)
     lines.append(f"reply in {label}.")
     return "\n".join(lines)

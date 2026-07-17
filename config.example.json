@@ -1,7 +1,13 @@
 {
-  "telegram": { "api_id": null, "api_hash": null },
+  "telegram": {
+    "api_id": null,
+    "api_hash": null
+  },
+  "api": {
+    "host": "127.0.0.1",
+    "port": 8471
+  },
   "active_provider": "nvidia",
-  "active_model": "moonshotai/kimi-k2.6",
   "providers": {
     "nvidia": {
       "label": "NVIDIA NIM",
@@ -9,42 +15,103 @@
       "api_key": "",
       "key_hint": "nvapi-...",
       "rpm": 40,
-      "models": ["moonshotai/kimi-k2.6", "deepseek-ai/deepseek-v4-flash"],
+      "models": [
+        "moonshotai/kimi-k2.6",
+        "deepseek-ai/deepseek-v4-flash"
+      ],
       "recommended": true,
       "signup": "https://build.nvidia.com"
+    },
+    "willow": {
+      "label": "Willow",
+      "base_url": "https://willowapi.digital/v1",
+      "api_key": "",
+      "key_hint": "sk-...",
+      "rpm": 60,
+      "models": [
+        "claude-sonnet-4-6",
+        "claude-opus-4-8",
+        "gpt-5.5",
+        "gemini-3.1-pro-preview",
+        "grok-4.5",
+        "deepseek-v4-pro",
+        "kimi-k2.6"
+      ],
+      "recommended": false,
+      "signup": "https://willowapi.digital"
+    },
+    "opencode": {
+      "label": "OpenCode Zen",
+      "base_url": "https://opencode.ai/zen/v1",
+      "api_key": "",
+      "key_hint": "sk-...",
+      "rpm": 60,
+      "models": [],
+      "recommended": false,
+      "signup": "https://opencode.ai/zen"
     },
     "openrouter": {
       "label": "OpenRouter",
       "base_url": "https://openrouter.ai/api/v1",
       "api_key": "",
+      "key_hint": "sk-or-...",
       "rpm": 200,
-      "models": ["deepseek/deepseek-chat"],
+      "models": [
+        "deepseek/deepseek-chat"
+      ],
+      "recommended": false,
       "signup": "https://openrouter.ai/keys"
     },
     "groq": {
       "label": "Groq",
       "base_url": "https://api.groq.com/openai/v1",
       "api_key": "",
+      "key_hint": "gsk_...",
       "rpm": 30,
-      "models": ["llama-3.3-70b-versatile"],
+      "models": [
+        "llama-3.3-70b-versatile"
+      ],
+      "recommended": false,
       "signup": "https://console.groq.com/keys"
     },
     "google": {
       "label": "Google AI Studio",
       "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
       "api_key": "",
+      "key_hint": "AIza...",
       "rpm": 15,
-      "models": ["gemini-2.0-flash"],
+      "models": [
+        "gemini-2.0-flash"
+      ],
+      "recommended": false,
       "signup": "https://aistudio.google.com/app/apikey"
+    },
+    "ollama": {
+      "label": "Ollama (local)",
+      "base_url": "http://localhost:11434/v1",
+      "api_key": "ollama",
+      "key_hint": "not needed",
+      "needs_key": false,
+      "supports_thinking": true,
+      "rpm": 120,
+      "models": [
+        "gemma4"
+      ],
+      "recommended": false,
+      "signup": "ollama run <model>"
     },
     "openai_compat": {
       "label": "OpenAI-compatible",
       "base_url": "",
       "api_key": "",
+      "key_hint": "sk-...",
       "rpm": 60,
-      "models": []
+      "models": [],
+      "recommended": false,
+      "signup": ""
     }
   },
+  "active_model": "moonshotai/kimi-k2.6",
   "persona": "assistant",
   "custom_prompt": "",
   "language": "en",
@@ -60,7 +127,8 @@
     "response_delay": 1.5,
     "per_chat_cooldown": 3.0,
     "ai_temperature": 0.85,
-    "ai_max_tokens": 500
+    "ai_max_tokens": 500,
+    "ai_thinking": false
   },
   "active_chats": [],
   "blacklist_chats": []
