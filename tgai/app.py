@@ -54,6 +54,50 @@ def build_state(config_path: str = "config.json", histories_path: str = "histori
     )
 
 
+def _pid_alive(pid: int) -> bool:
+    """Cross-platform 'is this pid still running' check."""
+    import os
+    import sys
+
+    if sys.platform == "win32":
+        import ctypes
+
+        SYNCHRONIZE = 0x00100000
+        handle = ctypes.windll.kernel32.OpenProcess(SYNCHRONIZE, False, pid)
+        if not handle:
+            return False
+        # 0x102 is WAIT_TIMEOUT, meaning the process is still alive
+        alive = ctypes.windll.kernel32.WaitForSingleObject(handle, 0) == 0x102
+        ctypes.windll.kernel32.CloseHandle(handle)
+        return alive
+    try:
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+
+
+def _watch_parent(pid: int) -> None:
+    """Exit hard once the parent (the desktop app) is gone, so we never orphan.
+
+    pyinstaller onefile re-execs into a child, so the desktop app can only kill
+    the bootloader. watching its pid here shuts the real server down too.
+    """
+    import os
+    import threading
+    import time
+
+    def loop() -> None:
+        while True:
+            time.sleep(1.5)
+            if not _pid_alive(pid):
+                os._exit(0)
+
+    threading.Thread(target=loop, daemon=True).start()
+
+
 def setup_logging() -> None:
     root = logging.getLogger()
     root.setLevel(logging.INFO)
@@ -95,6 +139,28 @@ async def run() -> None:
 
 
 def main() -> None:
+    import argparse
+    import os
+
+    parser = argparse.ArgumentParser(prog="tgai", description="telegram ai userbot")
+    parser.add_argument(
+        "--data-dir",
+        default="",
+        help="folder for config.json, histories.json and the session (default: current dir)",
+    )
+    parser.add_argument(
+        "--parent-pid",
+        type=int,
+        default=0,
+        help="exit when this process is gone, used by the desktop app",
+    )
+    args = parser.parse_args()
+    if args.data_dir:
+        os.makedirs(args.data_dir, exist_ok=True)
+        os.chdir(args.data_dir)
+    if args.parent_pid:
+        _watch_parent(args.parent_pid)
+
     setup_logging()
     try:
         asyncio.run(run())
