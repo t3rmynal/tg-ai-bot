@@ -1,0 +1,17 @@
+# tool config now, project metadata arrives with the package move
+
+[tool.ruff]
+line-length = 110
+target-version = "py310"
+exclude = [".venv", "desktop"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# tui is on its way out, not worth reflowing
+"console.py" = ["E501", "I001"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

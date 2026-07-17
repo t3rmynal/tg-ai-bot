@@ -188,7 +188,7 @@ def _setup_provider():
 def test_429_then_success(monkeypatch, tmp_path):
     _setup_provider()
     monkeypatch.setattr(ai_service, "HISTORIES_FILE", str(tmp_path / "h.json"))
-    ok = {"choices": [{"message": {"content": "hello — friend"}}]}
+    ok = {"choices": [{"message": {"content": "hello \u2014 friend"}}]}
     session = _FakeSession([
         _FakeResp(429, headers={"Retry-After": "0"}),
         _FakeResp(200, ok),

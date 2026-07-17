@@ -160,7 +160,7 @@ def _extract_reasoning(data: dict) -> str | None:
 
 
 def _sanitize(content: str) -> str:
-    return content.replace("—", "-").replace("–", "-").strip()
+    return content.replace("\u2014", "-").replace("\u2013", "-").strip()
 
 
 # rate-limit timing
@@ -246,7 +246,9 @@ async def _chat_completion(messages: list[dict], *, max_tokens: int, temperature
 
                 if resp.status >= 500:
                     wait = _backoff(attempt)
-                    logger.warning("[AI] %d, waiting %.1fs (try %d/%d)", resp.status, wait, attempt, MAX_ATTEMPTS)
+                    logger.warning(
+                        "[AI] %d, waiting %.1fs (try %d/%d)", resp.status, wait, attempt, MAX_ATTEMPTS,
+                    )
                     if attempt < MAX_ATTEMPTS:
                         await asyncio.sleep(wait)
                         continue
@@ -314,7 +316,10 @@ async def ask_ai(chat_id: int, user_message: str, extra_context: str = "") -> st
 async def generate_system_prompt(name: str, kind: str, tone: str, lang: str, extra: str = "") -> str:
     """Ask the active provider to write a persona system prompt. Falls back offline."""
     label = personas.language_label(lang)
-    acts = "a real person (never admits being an AI)" if kind == "human" else "an AI assistant (honest about being one)"
+    if kind == "human":
+        acts = "a real person (never admits being an AI)"
+    else:
+        acts = "an AI assistant (honest about being one)"
     spec = (
         f"Name: {name or 'the bot'}\n"
         f"Acts as: {acts}\n"
