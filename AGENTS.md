@@ -23,10 +23,16 @@ surface. The desktop app in `desktop/` (Tauri v2 + Next.js static export) talks 
 python3 -m venv .venv && .venv/bin/pip install -e ".[dev]"   # first time
 .venv/bin/python -m tgai            # run the bot + api server
 .venv/bin/python -m pytest -q       # tests
-scripts/qa.sh                       # ruff + pytest + em-dash grep + frontend lint/build
+scripts/qa.sh                       # ruff + pytest + long-dash grep + frontend lint/build
+scripts/dev.sh                      # start core, wait, open the tauri window
 pnpm -C desktop dev                 # ui in a browser on :3000
-pnpm -C desktop tauri dev           # desktop window
+pnpm -C desktop tauri dev           # desktop window (needs the core running)
+PYTHON=.venv/bin/python scripts/build-sidecar.sh   # bundle the core for a release build
+pnpm -C desktop tauri build         # self-contained app (run build-sidecar.sh first)
 ```
+
+Release binaries for macOS and Windows are built by `.github/workflows/release.yml`
+on a `vX.Y.Z` tag. See rules_public.md for the release and versioning steps.
 
 ## rules
 
